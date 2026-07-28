@@ -211,7 +211,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="nav-bar">
     <button class="btn icon-btn" onclick="showScreen('s-home')">✕</button>
     <h2>Wochensatz</h2>
-    <span id="wsNiveauTag" class="tag" style="font-size:11px"></span>
+    
   </div>
 
   <!-- A: Hören -->
@@ -758,7 +758,7 @@ function getCurrentSatz(){
 function startWochensatz(){
   wsCurrentSatz=getCurrentSatz();
   if(!wsCurrentSatz){alert('Kein Wochensatz vorhanden. Bitte im Admin hinzufügen.');return;}
-  const niv=curData.niveau||'A';
+  const niv='C';// alle Wörter standardmässig
 
   // Alle Wörter des Satzes bereinigt (ohne Satzzeichen, ohne Sternchen)
   const cleanText=wsCurrentSatz.text.replace(/\*/g,'');
@@ -1028,8 +1028,6 @@ async function openKindAdmin(id){
   document.getElementById('adminKindTitle').textContent=k.name;
   adminData=await dbGet('k_'+id)||mkData();
   if(!adminData.merkPos)adminData.merkPos={};
-  document.getElementById('kindStrategie').value=adminData.strategie||'';
-  document.getElementById('kindNiveau').value=adminData.niveau||'A';
   document.getElementById('kindSnakeLevel').value=adminData.snakeLevel||1;
   const st=getMerkStatus(adminData.merkPos);
   document.getElementById('adminMerkStatus').innerHTML=`<b>Aktuelle Klasse: Klasse ${st.curKl}</b><br>Fortschritt: ${st.done} von ${st.total} Wörtern gelernt`;
