@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FRESCH">
+<title>FRESCH Lernwörter</title>
+<style>
+:root{
+  --blue:#3B7DD8;--lblue:#E3EEFF;--dblue:#2563B0;
+  --green:#3A9B5C;--lgreen:#E4F5EC;
+  --orange:#D06820;--lorange:#FEF0E4;
+  --red:#C94040;--lred:#FDEAEA;
+  --yellow:#C8940A;--lyellow:#FEF7DC;
+  --pink:#C45A82;--lpink:#FAEAF0;
+  --purple:#7C4DCC;--lpurple:#F0EAFF;
+  --bg:#F2F4F8;--card:#FFF;--text:#1A1D23;--muted:#6B7280;
+  --border:rgba(0,0,0,0.08);--radius:16px;
+  --shadow:0 2px 16px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:var(--text);-webkit-text-size-adjust:100%}
+.screen{display:none;flex-direction:column;min-height:100vh;padding:1rem 1rem 3rem}
+.screen.active{display:flex}
+.card{background:var(--card);border-radius:var(--radius);padding:1.25rem;margin-bottom:.75rem;box-shadow:var(--shadow)}
+.card.blue{background:var(--lblue)} .card.green{background:var(--lgreen)} .card.orange{background:var(--lorange)}
+.card.yellow{background:var(--lyellow)} .card.pink{background:var(--lpink)} .card.purple{background:var(--lpurple)}
+.btn{display:block;width:100%;padding:14px;border-radius:12px;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;transition:transform .1s,opacity .15s;text-align:center;line-height:1.2}
+.btn:active{transform:scale(.97)}
+.btn+.btn{margin-top:8px}
+.btn.primary{background:var(--blue);color:#fff} .btn.success{background:var(--green);color:#fff}
+.btn.danger{background:var(--red);color:#fff} .btn.orange{background:var(--orange);color:#fff}
+.btn.purple{background:var(--purple);color:#fff} .btn.ghost{background:rgba(0,0,0,0.06);color:var(--text)}
+.btn.warn{background:var(--yellow);color:#fff}
+.btn.sm{padding:9px 16px;font-size:14px;width:auto;display:inline-block;border-radius:10px}
+.btn.icon-btn{background:none;border:none;font-size:22px;padding:6px 10px;width:auto;color:var(--muted);cursor:pointer}
+.tag{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.tag.blue{background:var(--lblue);color:var(--blue)} .tag.green{background:var(--lgreen);color:var(--green)}
+.tag.red{background:var(--lred);color:var(--red)} .tag.orange{background:var(--lorange);color:var(--orange)}
+.tag.yellow{background:var(--lyellow);color:var(--yellow)} .tag.purple{background:var(--lpurple);color:var(--purple)}
+.tag.pink{background:var(--lpink);color:var(--pink)} .tag.grey{background:#E5E7EB;color:#374151}
+.dots{display:flex;gap:6px;justify-content:center;align-items:center}
+.dot{width:10px;height:10px;border-radius:50%;background:#D1D5DB;transition:all .2s}
+.dot.done{background:var(--green)} .dot.current{background:var(--blue);width:22px;border-radius:5px} .dot.error{background:var(--red)}
+.avatar{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;flex-shrink:0}
+input[type=text],select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;background:#fff;color:var(--text);font-size:16px;font-family:inherit;outline:none}
+input[type=text]:focus,select:focus,textarea:focus{border-color:var(--blue)}
+textarea{resize:vertical;min-height:70px}
+.word-hero{font-size:30px;font-weight:700;text-align:center;letter-spacing:.3px;line-height:1.3;word-break:break-word;padding:.75rem 0}
+.nav-bar{display:flex;align-items:center;gap:8px;margin-bottom:1.25rem}
+.nav-bar h2{flex:1;font-size:20px;font-weight:700}
+.word-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.word-row:last-child{border-bottom:none}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-box{background:var(--bg);border-radius:12px;padding:.75rem;text-align:center}
+.stat-num{font-size:28px;font-weight:700;line-height:1}
+.stat-label{font-size:11px;color:var(--muted);margin-top:2px}
+.hero-bg{background:linear-gradient(135deg,var(--blue) 0%,#5B9FE8 100%);border-radius:var(--radius);padding:1.5rem;color:#fff;margin-bottom:.75rem;position:relative;overflow:hidden}
+.hero-bg::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(255,255,255,.1);border-radius:50%}
+.speak-pill{display:inline-flex;align-items:center;gap:8px;color:#fff;border:none;border-radius:30px;padding:12px 24px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--blue)}
+.speak-pill:active{opacity:.85}
+.step-badge{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px}
+.muted{color:var(--muted);font-size:13px}
+.section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;display:block}
+.day-row{display:flex;gap:6px;margin-bottom:12px}
+.day-dot{flex:1;height:6px;border-radius:3px;background:#E5E7EB}
+.day-dot.done{background:var(--green)} .day-dot.today{background:var(--blue)}
+
+/* Lückentext */
+.luecken-display{font-size:20px;line-height:2;text-align:center;padding:.75rem 0;flex-wrap:wrap;display:flex;justify-content:center;align-items:baseline;gap:6px}
+.luecken-word{font-weight:600;color:var(--text)}
+.luecken-blank{display:inline-block;border-bottom:2.5px solid var(--blue);min-width:60px;color:var(--blue);font-weight:700;text-align:center;padding:0 4px}
+
+/* Wochensatz Wort-Chips */
+.satz-display{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:.75rem 0}
+.satz-chip{padding:8px 14px;border-radius:10px;font-size:17px;font-weight:600;background:var(--bg);border:2px solid var(--border);cursor:pointer;transition:all .15s;user-select:none}
+.satz-chip.correct{background:var(--lgreen);border-color:var(--green);color:var(--green)}
+.satz-chip.missed{background:var(--lred);border-color:var(--red);color:var(--red);opacity:.6}
+.satz-chip.plain{cursor:default;background:transparent;border-color:transparent;font-weight:400;color:var(--muted)}
+
+/* Niveau badge */
+.niv-a{background:#3A9B5C;color:#fff}
+.niv-b{background:#7C4DCC;color:#fff}
+.niv-c{background:#D06820;color:#fff}
+
+/* Merk cat header */
+.merk-cat-header{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 4px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="s-login" class="screen active">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:1rem">
+    <div class="hero-bg" style="text-align:center;padding:2rem 1.5rem">
+      <div style="font-size:52px;margin-bottom:10px">📖</div>
+      <h1 style="color:#fff;font-size:28px;letter-spacing:-.5px">FRESCH Lernwörter</h1>
+      <p style="color:rgba(255,255,255,.75);margin-top:6px;font-size:14px">Primarschule Bettingen</p>
+    </div>
+    <div class="card">
+      <span class="section-label">Wer bist du?</span>
+      <select id="loginSelect" style="margin-bottom:12px"><option value="">— Name wählen —</option></select>
+      <button class="btn primary" onclick="doLogin()">Los geht's →</button>
+    </div>
+    <button class="btn ghost sm" style="margin:0 auto" onclick="showAdminScreen()">⚙️ Lehrperson</button>
+    <p class="muted" style="text-align:center;font-size:11px;margin-top:4px">💡 Tipp: Für beste Sprachqualität unter Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch → Siri (Deutsch) aktivieren</p>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="s-home" class="screen">
+  <div class="hero-bg">
+    <div style="display:flex;align-items:center;gap:12px;position:relative">
+      <div class="avatar" id="homeAvatar"></div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:20px;color:#fff" id="homeName"></div>
+        <div style="font-size:13px;color:rgba(255,255,255,.75)" id="homeStats"></div>
+      </div>
+      <button class="btn ghost sm" style="background:rgba(255,255,255,.2);color:#fff;font-size:13px;border:none" onclick="showScreen('s-login')">Abmelden</button>
+    </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px;position:relative;flex-wrap:wrap">
+      <span style="font-size:13px;color:rgba(255,255,255,.85)" id="homeStrategie"></span>
+      <span id="homeNiveau" class="tag" style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;margin-left:auto"></span>
+      <span id="homeWeek" class="tag" style="background:rgba(255,255,255,.15);color:#fff;font-size:11px"></span>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-weight:600;font-size:15px">Diese Woche</span>
+      <span class="muted" id="homeDayLabel"></span>
+    </div>
+    <div class="day-row" id="homeDayDots"></div>
+    <div id="homeMerkInfo" class="muted"></div>
+  </div>
+  <button class="btn orange" onclick="startVorgluehung()">🔥 1. Vorglühübung</button>
+  <button class="btn purple" onclick="startWochensatz()" style="margin-top:8px">📝 2. Wochensatz</button>
+  <button class="btn primary" onclick="startTraining()" style="margin-top:8px">⭐ 3. Lernwörter üben</button>
+  <button class="btn ghost" onclick="showWeekReview()" style="margin-top:8px">📊 Wochenübersicht</button>
+</div>
+
+<!-- VG SCHRITT 1 -->
+<div id="s-vg1" class="screen">
+  <div class="nav-bar">
+    <button class="btn icon-btn" onclick="showScreen('s-home')">✕</button>
+    <div class="dots" id="vgDots1" style="flex:1"></div>
+    <span class="tag orange" style="font-size:11px">1 / 4</span>
+  </div>
+  <div class="card" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:260px">
+    <div class="step-badge" style="background:var(--lorange)">👁️</div>
+    <h2 style="margin-bottom:6px">Lies das Wort laut</h2>
+    <p class="muted" style="margin-bottom:4px">So deutlich und langsam wie möglich</p>
+    <div class="word-hero" id="vg1Word"></div>
+  </div>
+  <button class="btn orange" onclick="vgNext(2)" style="margin-top:auto">Weiter →</button>
+</div>
+
+<!-- VG SCHRITT 2 -->
+<div id="s-vg2" class="screen">
+  <div class="nav-bar">
+    <button class="btn icon-btn" onclick="showScreen('s-home')">✕</button>
+    <div class="dots" id="vgDots2" style="flex:1"></div>
+    <span class="tag green" style="font-size:11px">2 / 4</span>
+  </div>
+  <div class="card" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:260px">
+    <div class="step-badge" style="background:var(--lgreen)">〜</div>
+    <h2 style="margin-bottom:6px">Sprechschwinge</h2>
+    <p class="muted">Sprich in Silben – schwinge mit der Hand mit</p>
+    <div class="word-hero" id="vg2Word"></div>
+  </div>
+  <button class="btn success" onclick="vgNext(3)" style="margin-top:auto">Weiter →</button>
+</div>
+
+<!-- VG SCHRITT 3 -->
+<div id="s-vg3" class="screen">
+  <div class="nav-bar">
+    <button class="btn icon-btn" onclick="showScreen('s-home')">✕</button>
+    <div class="dots" id="vgDots3" style="flex:1"></div>
+    <span class="tag blue" style="font-size:11px">3 / 4</span>
+  </div>
+  <div class="card" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:260px">
+    <div class="step-badge" style="background:var(--lblue)">✏️</div>
+    <h2 style="margin-bottom:6px">Sprechschreibe</h2>
+    <p class="muted" style="margin-bottom:20px">Schreibe ins Heft – sprich gleichzeitig mit</p>
+    <button class="speak-pill" onclick="speakVgCurrent()">🔊 Wort hören</button>
+    <p class="muted" style="margin-top:12px;font-size:12px">Du kannst mehrmals tippen</p>
+  </div>
+  <button class="btn primary" onclick="vgNext(4)" style="margin-top:auto">Fertig geschrieben →</button>
+</div>
+
+<!-- VG SCHRITT 4 -->
+<div id="s-vg4" class="screen">
+  <div class="nav-bar">
+    <button class="btn icon-btn" onclick="showScreen('s-home')">✕</button>
+    <div class="dots" id="vgDots4" style="flex:1"></div>
+    <span class="tag pink" style="font-size:11px">4 / 4</span>
+  </div>
+  <div class="card" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:260px">
+    <div class="step-badge" style="background:var(--lpink)">✓</div>
+    <h2 style="margin-bottom:6px">Lesekontrolle</h2>
+    <p class="muted" style="margin-bottom:8px">Vergleiche dein Wort mit dem Original</p>
+    <div class="word-hero" id="vg4Word"></div>
+    <button class="speak-pill" onclick="speakVgCurrent()" style="margin-top:8px">🔊 Hören</button>
+  </div>
+  <button class="btn orange" id="vgNextBtn" style="margin-top:auto">Nächstes Wort →</button>
+</div>
+
+<!-- WOCHENSATZ -->
+<div id="s-wochensatz" class="screen">
+  <div class="nav-bar">
+    <button class="btn icon-btn" onclick="showScreen('s-home')">✕</button>
+    <h2>Wochensatz</h2>
+    <span id="wsNiveauTag" class="tag" style="font-size:11px"></span>
+  </div>
+
+  <!-- A: Hören -->
+  <div id="ws-listen" style="display:none;flex-direction:column;flex:1">
+    <div class="card purple" style="text-align:center;padding:1.5rem">
+      <div style="font-size:44px;margin-bottom:10px">🎧</div>
+      <h2 style="margin-bottom:6px;color:var(--purple)">Höre den Satz</h2>
+      <p class="muted" style="margin-bottom:16px">Dann schreibe die fehlenden Wörter ins Heft</p>
+      <button class="speak-pill" style="background:var(--purple);margin:0 auto" onclick="speakWochensatz()">🔊 Satz anhören</button>
+      <p class="muted" style="margin-top:10px;font-size:12px">Du kannst mehrmals tippen</p>
+    </div>
+    <!-- Lückentext Anzeige -->
+    <div class="card">
+      <p class="section-label">Deine Aufgabe:</p>
+      <div class="luecken-display" id="wsLueckenDisplay"></div>
+    </div>
+    <button class="btn purple" onclick="wsShowCheck()" style="margin-top:auto">Fertig geschrieben →</button>
+  </div>
+
+  <!-- B: Kontrolle -->
+  <div id="ws-check" style="display:none;flex-direction:column;flex:1;gap:.75rem">
+    <div class="card">
+      <p class="section-label">Vollständiger Satz – tippe an, was du richtig hast:</p>
+      <div class="satz-display" id="wsWordChips"></div>
+    </div>
+    <div id="wsFritagHint" style="display:none" class="card orange">
+      <p style="font-size:13px;font-weight:600;color:var(--orange)">📅 Freitagskontrolle</p>
+      <p style="font-size:13px;margin-top:4px">Fehlende Wörter kommen heute zu deiner Lernwortliste.</p>
+    </div>
+    <button class="btn purple" onclick="wsSave()" style="margin-top:auto">Kontrolle abschliessen →</button>
+  </div>
+
+  <!-- C: Abschluss -->
+  <div id="ws-done" style="display:none;flex-direction:column;flex:1;align-items:center;justify-content:center;text-align:center;gap:1rem">
+    <div style="font-size:56px">📝</div>
+    <h2 id="wsDoneMsg"></h2>
+    <p class="muted" id="wsDoneSub" style="max-width:220px"></p>
+    <div id="wsAddedWords" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:6px"></div>
+    <button class="btn purple" onclick="showScreen('s-home');renderHome()" style="margin-top:1rem;width:auto;padding:14px 32px">Zurück →</button>
+  </div>
+</div>
+
+<!-- TRAINING -->
+<div id="s-train" class="screen">
+  <div class="nav-bar">
+    <button class="btn icon-btn" onclick="if(confirm('Training abbrechen?'))showScreen('s-home')">✕</button>
+    <div class="dots" id="trainDots" style="flex:1"></div>
+    <span class="muted" style="font-size:13px">Wort <span id="trainCounter">1</span>/<span id="trainTotal">5</span></span>
+  </div>
+  <div id="ph-dictate" style="display:none;flex-direction:column;flex:1">
+    <div class="card" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:260px">
+      <div style="font-size:48px;margin-bottom:12px">👂</div>
+      <h2 style="margin-bottom:6px">Höre das Wort</h2>
+      <p class="muted" style="margin-bottom:20px">Dann schreibe es ins Heft</p>
+      <button class="speak-pill" onclick="speakCurrent()">🔊 Wort anhören</button>
+      <p class="muted" style="margin-top:12px;font-size:12px">Du kannst mehrmals tippen</p>
+    </div>
+    <button class="btn primary" onclick="showCheck()" style="margin-top:auto">Fertig geschrieben →</button>
+  </div>
+  <div id="ph-check" style="display:none;flex-direction:column;flex:1;gap:.75rem">
+    <div class="card blue" style="text-align:center;padding:1.5rem;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <p class="section-label" style="color:var(--blue)">Lösung</p>
+      <div class="word-hero" id="checkWord" style="color:var(--blue)"></div>
+      <button class="speak-pill" onclick="speakCurrent()" style="margin-top:8px">🔊 Hören</button>
+    </div>
+    <p style="text-align:center;font-size:14px;color:var(--muted)">Stimmt dein Wort im Heft?</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button class="btn success" onclick="markResult(true)">✓ Richtig!</button>
+      <button class="btn danger" onclick="markResult(false)">✗ Fehler</button>
+    </div>
+  </div>
+  <div id="ph-redo" style="display:none;flex-direction:column;flex:1">
+    <div class="card" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:260px">
+      <div style="font-size:48px;margin-bottom:12px">✏️</div>
+      <h2 style="margin-bottom:4px">Noch einmal üben!</h2>
+      <p class="muted">Noch <span id="redoCount" style="font-weight:700;color:var(--red)"></span>× schreiben</p>
+      <div style="background:var(--lred);border-radius:12px;padding:1rem 1.5rem;margin:16px 0">
+        <div style="font-size:26px;font-weight:700;color:var(--red);word-break:break-word" id="redoWord"></div>
+      </div>
+      <p class="muted" style="font-size:13px">Schreibe ins Heft – sprich dabei mit</p>
+    </div>
+    <button class="btn primary" onclick="doneRedo()" style="margin-top:auto">Fertig →</button>
+  </div>
+  <div id="ph-result" style="display:none;flex-direction:column;flex:1;align-items:center;justify-content:center;text-align:center;gap:1rem">
+    <div style="font-size:64px" id="resultEmoji"></div>
+    <h2 id="resultMsg"></h2>
+    <p class="muted" id="resultSub" style="max-width:220px"></p>
+    <button class="btn primary" onclick="nextWord()" style="margin-top:.5rem;width:auto;padding:14px 36px" id="resultNextBtn"></button>
+  </div>
+</div>
+
+<!-- DONE -->
+<div id="s-done" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:1rem">
+    <div style="text-align:center;padding:1rem 0">
+      <div style="font-size:64px">🎉</div>
+      <h1 style="margin-top:12px">Super gemacht!</h1>
+      <p class="muted" style="margin-top:4px">Lernwörter-Einheit abgeschlossen</p>
+    </div>
+    <div class="card"><h3 style="margin-bottom:12px">Heute geübte Wörter</h3><div id="doneWordList"></div></div>
+    <button class="btn primary" onclick="showScreen('s-home');renderHome()">Zurück zur Übersicht</button>
+  </div>
+</div>
+
+<!-- WOCHENÜBERSICHT -->
+<div id="s-week" class="screen">
+  <div class="nav-bar">
+    <button class="btn icon-btn" onclick="showScreen('s-home')">←</button>
+    <h2>Wochenübersicht</h2>
+  </div>
+  <div id="wk-start" style="display:flex;flex-direction:column;gap:.75rem">
+    <div class="card" style="text-align:center;padding:1.5rem">
+      <div style="font-size:40px;margin-bottom:10px">📋</div>
+      <h3 style="margin-bottom:6px">Wochendiktat</h3>
+      <p class="muted" style="margin-bottom:16px">Alle Lernwörter nochmals diktieren</p>
+      <button class="btn primary" onclick="startWeekReview()">Wochendiktat starten</button>
+    </div>
+    <div class="card"><h3 style="margin-bottom:10px">⭐ Ich-kann-Kartei</h3><div id="ikMain" style="display:flex;flex-wrap:wrap;gap:6px"></div></div>
+  </div>
+  <div id="wk-review" style="display:none;flex-direction:column;gap:.75rem">
+    <div class="card" style="text-align:center;padding:1.5rem">
+      <p class="muted" style="margin-bottom:4px">Wort <span id="wkCtr">1</span> von <span id="wkTotal">5</span></p>
+      <button class="speak-pill" onclick="speakWeekWord()" style="margin:12px auto;display:inline-flex">🔊 Wort hören</button>
+    </div>
+    <button class="btn primary" onclick="checkWeekWord()">Lösung zeigen →</button>
+    <div id="wkCheckBox" style="display:none" class="card">
+      <div style="text-align:center;margin-bottom:12px">
+        <p class="section-label" style="color:var(--blue)">Lösung</p>
+        <div style="font-size:26px;font-weight:700;color:var(--blue)" id="wkSolution"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button class="btn success" onclick="markWeekResult(true)">✓ Richtig</button>
+        <button class="btn danger" onclick="markWeekResult(false)">✗ Fehler</button>
+      </div>
+    </div>
+  </div>
+  <div id="wk-stats" style="display:none;flex-direction:column;gap:.75rem">
+    <div class="card">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-num" style="color:var(--green)" id="stOk">0</div><div class="stat-label">Richtig</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--red)" id="stErr">0</div><div class="stat-label">Fehler</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--blue)" id="stIk">0</div><div class="stat-label">Ich kann!</div></div>
+      </div>
+      <div id="wkWordResults"></div>
+    </div>
+    <div class="card yellow"><h3 style="margin-bottom:10px">⭐ Ich-kann-Kartei</h3><div id="ikStats" style="display:flex;flex-wrap:wrap;gap:6px"></div></div>
+    <button class="btn primary" onclick="finishWeek()">Neue Woche starten</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="s-admin" class="screen">
+  <div class="nav-bar">
+    <button class="btn icon-btn" onclick="showScreen('s-login')">←</button>
+    <h2>Verwaltung</h2>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:10px">Kind hinzufügen</h3>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="newKindName" placeholder="Name des Kindes">
+      <button class="btn primary sm" onclick="addKind()">+ Hinzufügen</button>
+    </div>
+  </div>
+  <div id="adminKindList" style="display:flex;flex-direction:column;gap:8px"></div>
+  <div class="card" style="margin-top:.75rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3>Wochensätze</h3>
+      <button class="btn purple sm" onclick="showSaetzeAdmin()">Verwalten →</button>
+    </div>
+    <p class="muted">Sätze für Niveau A / B / C – alle hören denselben Satz</p>
+  </div>
+</div>
+
+<!-- ADMIN KIND -->
+<div id="s-admin-kind" class="screen">
+  <div class="nav-bar">
+    <button class="btn icon-btn" onclick="showScreen('s-admin');renderAdminList()">←</button>
+    <h2 id="adminKindTitle"></h2>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:12px">Einstellungen</h3>
+    <span class="section-label">FRESCH-STRATEGIE</span>
+    <select id="kindStrategie" style="margin-bottom:12px">
+      <option value="">— wählen —</option>
+      <option value="Aa – Gross oder Klein">Aa – Gross oder Klein</option>
+      <option value="〜 – Silben Schwingen">〜 – Silben Schwingen</option>
+      <option value="↪ – Verlängern">↪ – Verlängern</option>
+      <option value="⚡ – Ableiten">⚡ – Ableiten</option>
+      <option value="M – Merken">M – Merken</option>
+    </select>
+    <span class="section-label">NIVEAU</span>
+    <select id="kindNiveau" style="margin-bottom:12px">
+      <option value="A">Niveau A – 1 Lücke</option>
+      <option value="B">Niveau B – mehrere Lücken</option>
+      <option value="C">Niveau C – ganzer Satz</option>
+    </select>
+    <span class="section-label">WOCHENSATZ – WÖRTER FÜR DIESES KIND</span>
+    <p class="muted" style="margin-bottom:8px;font-size:12px">Tippe an, welche Wörter dieses Kind diese Woche schreiben muss:</p>
+    <div id="kindSatzChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;padding:10px;background:var(--bg);border-radius:10px;min-height:44px"></div>
+    <span class="section-label">VORGLÜHÜBUNG SCHWIERIGKEIT</span>
+    <select id="kindSnakeLevel" style="margin-bottom:12px">
+      <option value="1">Stufe 1 – einfach</option>
+      <option value="2">Stufe 2 – mittel</option>
+      <option value="3">Stufe 3 – anspruchsvoll</option>
+      <option value="4">Stufe 4 – schwierig</option>
+      <option value="5">Stufe 5 – sehr schwierig</option>
+    </select>
+    <button class="btn primary" onclick="saveSettings()">Einstellungen speichern</button>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:12px">Aktionen</h3>
+    <button class="btn warn" onclick="resetKind()" style="margin-bottom:8px">🔄 Fortschritt zurücksetzen</button>
+    <button class="btn danger" onclick="deleteKind()">🗑 Kind löschen</button>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <h3>Merkwörterliste</h3>
+      <button class="btn ghost sm" onclick="toggleMerkEdit()" id="merkEditBtn">✏️ Bearbeiten</button>
+    </div>
+    <div id="adminMerkStatus" style="font-size:14px;color:var(--muted);background:var(--bg);padding:10px 14px;border-radius:10px;margin-bottom:8px"></div>
+    <div id="merkEditSection" style="display:none"><div id="merkEditList"></div></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:10px">Zusätzliche Lernwörter</h3>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" id="newWordInput" placeholder="Wort" onkeydown="if(event.key==='Enter')addWord()">
+      <button class="btn primary sm" onclick="addWord()">+</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="bulkWords" placeholder="weil, auch, dann, ...">
+      <button class="btn ghost sm" onclick="addBulkWords()">Alle +</button>
+    </div>
+    <div style="margin-top:12px"><div id="adminWordList"></div></div>
+  </div>
+</div>
+
+<!-- ADMIN WOCHENSÄTZE -->
+<div id="s-admin-saetze" class="screen">
+  <div class="nav-bar">
+    <button class="btn icon-btn" onclick="showScreen('s-admin')">←</button>
+    <h2>Wochensätze</h2>
+  </div>
+  <div class="card blue">
+    <p style="font-size:13px;color:var(--blue)">📌 Alle Kinder hören denselben Satz. Niveau A bekommt 1 Lücke, Niveau B mehrere, Niveau C schreibt alles. Markiere Lückenwörter mit *Sternchen*.</p>
+  </div>
+  <div id="saetzeList" style="display:flex;flex-direction:column;gap:.75rem"></div>
+  <div class="card" style="margin-top:.75rem">
+    <h3 style="margin-bottom:12px">Neuen Satz hinzufügen</h3>
+    <p class="muted" style="margin-bottom:8px">Markiere Lückenwörter mit *Sternchen*: z.B. «Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*.»</p>
+    <span class="section-label">WOCHE</span>
+    <input type="text" id="newSatzWoche" placeholder="z.B. 1" style="margin-bottom:10px;width:80px">
+    <span class="section-label" style="margin-top:6px">SATZ (Lückenwörter mit *Sternchen*)</span>
+    <textarea id="newSatzText" placeholder="Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*." style="margin-bottom:10px"></textarea>
+    <button class="btn purple" onclick="addSatz()">+ Satz hinzufügen</button>
+  </div>
+</div>
+
+<script>
+// =================== MERKWÖRTERLISTEN ===================
+const MERKWOERTER={
+  2:{
+    M1:{name:"M1 – Kleine Wörter",words:["ab","bald","dann","eins","er hat","heraus","herum","hinein","er gibt","er kann","oft","sie sind","und","uns","unser","wann","es wird"]},
+    M2:{name:"M2 – v-Wörter",words:["der Vater","die Väter","viel","viele","vier","der Vogel","die Vögel","vor","vom","von","vorlesen","verschlafen"]},
+    M3:{name:"M3 – ie-Wörter",words:["ihm","ihn","ihnen","ihr","ihre","dir","mir","wir"]},
+    M4:{name:"M4 – aa/ee/oo",words:["das Haar","die Haare","der Schnee","der Zoo"]},
+    M5:{name:"M5 – Ähnliche Laute",words:["der Fuchs","der Dachs","sechs","der Bär","der Käfig","der März"]},
+    M6:{name:"M6 – h-Wörter",words:["sehr","mehr","fahren","der Lehrer","die Lehrerin","das Ohr","die Uhr","Weihnachten","zehn"]},
+    M8:{name:"M8 – Fremdwörter",words:["der Computer","das Internet","das Telefon"]}
+  },
+  3:{
+    M1:{name:"M1 – Kleine Wörter",words:["ab","abends","morgens","als","antworten","bald","damit","danach","dann","denn","deshalb","dort","durch","etwas","ganz","jetzt","nämlich","niemand","oft","plötzlich","selbst","trotzdem","und","uns","wann","warum","wenn","weshalb","ziemlich","zuletzt"]},
+    M2:{name:"M2 – v-Wörter",words:["der Vater","die Väter","viel","viele","vier","der Vogel","die Vögel","vor","vom","von","vorbei","vergessen","er vergisst","verlieren","verschlafen","verschwinden","vorlesen","vorsingen","vorstellen","die Ferien","der Fernseher","fertig","sofort"]},
+    M3:{name:"M3 – ie-Wörter",words:["ihm","ihn","ihnen","ihr","ihre","die Bibel","dir","mir","wir","die Fabrik","er gibt","das Lineal","die Medizin","er sieht","die Maschine","die Margarine"]},
+    M4:{name:"M4 – aa/ee/oo",words:["das Haar","die Haare","ein Paar Schuhe","der Schnee","die Beere","die Fee","die Idee","leer","das Meer","der See","das Boot","der Zoo"]},
+    M5:{name:"M5 – Ähnliche Laute",words:["der Computer","der Keks","links","mittags","der Dachs","der Fuchs","sechs","wachsen","der Ärger","der Bär","erklären","der Käfer","der Käfig","der Käse","das Mädchen","das Märchen","der März","das Rätsel","spät","der Mai","quaken","die Quelle","die Stadt"]},
+    M6:{name:"M6 – h-Wörter",words:["mehr","ohne","sehr","die Bahn","erzählen","fahren","er fährt","er fuhr","die Fahrt","das Fahrrad","fehlen","der Fehler","das Jahr","der Lehrer","die Lehrerin","das Mehl","die Nahrung","nehmen","er nimmt","das Ohr","rühren","das Stroh","die Uhr","Weihnachten","wohnen","die Wohnung","die Zahl","zählen","der Zahn","zehn"]},
+    M8:{name:"M8 – Fremdwörter",words:["der Computer","cool","die E-Mail","das Internet","interessant","das Interesse","die Mathematik","das Training","der Rhythmus"]}
+  },
+  4:{
+    M1:{name:"M1 – Kleine Wörter",words:["ab","abends","als","antworten","bereits","ein bisschen","dann","damals","damit","danach","denn","deshalb","dort","durch","endlich","etwas","fast","ganz","jetzt","nämlich","niemand","nirgends","oft","plötzlich","selbst","sofort","trotzdem","und","uns","wann","warum","weg","wenn","weshalb","ziemlich","zuletzt","zurück"]},
+    M2:{name:"M2 – v-Wörter",words:["das Klavier","der November","der Pullover","der Vater","die Väter","viel","viele","vielleicht","vier","der Vogel","die Vögel","das Volk","voll","vom","von","vorbei","vorher","vorne","verbrauchen","vergessen","er vergisst","verlieren","verschlafen","verschwinden","vorlesen","vorsingen","vorstellen","vortragen","entfernen","die Ferien","fertig","sofort"]},
+    M3:{name:"M3 – ie-Wörter",words:["ihm","ihn","ihnen","ihr","ihre","das Benzin","die Medizin","die Bibel","dir","mir","wir","die Fabrik","die Familie","er gibt","die Giraffe","das Kaninchen","das Kino","das Klima","das Krokodil","das Lineal","der Tiger","er sieht","er befiehlt","er empfiehlt","die Maschine","die Mandarine","die Rosine","die Praline","die Margarine","die Vitamine"]},
+    M4:{name:"M4 – aa/ee/oo",words:["der Aal","das Haar","ein Paar Schuhe","der Saal","die Waage","die Fee","die Idee","der Kaffee","der Klee","der Tee","der Schnee","der See","die Beere","das Beet","leer","das Meer","die Seele","das Boot","das Moor","das Moos","der Zoo"]},
+    M5:{name:"M5 – Ähnliche Laute",words:["der Chor","der Clown","der Computer","der Keks","links","der Klecks","der Dachs","der Fuchs","sechs","wachsen","der Ärger","der Bär","erklären","das Geländer","das Gerät","das Geschäft","der Käfer","der Käfig","der Käse","das Mädchen","das Märchen","der März","das Rätsel","spät","der Mai","der Mais","quaken","die Quelle","quer","die Stadt","verwandt"]},
+    M6:{name:"M6 – h-Wörter",words:["ohne","mehr","sehr","wohl","die Bahn","die Bühne","dehnen","erzählen","fahren","er fährt","er fuhr","die Fahrt","das Fahrrad","fehlen","der Fehler","fröhlich","führen","gähnen","gehen","gewöhnlich","das Jahr","kühl","der Lehrer","die Lehrerin","lehren","der Lohn","das Mehl","die Möhre","die Mühe","die Mühle","die Nahrung","nehmen","er nimmt","das Ohr","rühren","die Sahne","der Schuh","sehen","er sieht","stehen","das Stroh","der Stuhl","die Uhr","ungefähr","der Verkehr","die Wahl","wählen","wahr","Weihnachten","wohnen","die Wohnung","die Zahl","zählen","der Zahn","der Zahnarzt","zehn"]},
+    M8:{name:"M8 – Fremdwörter",words:["die Adresse","das Alphabet","der Chef","die Chefin","der Computer","der Clown","cool","dividieren","die E-Mail","interessant","das Interesse","die Mathematik","multiplizieren","das Internet","der CD-Player","die Playstation","das Prädikat","das Präsens","das Training","der Rhythmus","rhythmisch","subtrahieren","der Ballon","der Balkon","das Bonbon","der Karton","die Addition","die Information","die Multiplikation","die Position","die Station","die Subtraktion"]}
+  }
+};
+
+const SNAKE_WORDS={
+  1:{words:["Elefantenhautfalten","Pausenbrotdose","Pampelmusenschale","Tomatensalatschale","Ameisenhaufen","Lederhosen","Schokoladentortengabel","Bananenmarmelade","Panamakanal","Pausenzeichen","Federhalter","Tomatensalat","Schulranzen","Tischbeine","Wintermantel","Tafelkreidenhalter","Ampelanlage","Lampenschirme","Hamsterkindernester","Regenbogenfarben"]},
+  2:{words:["Kinderkleiderkiste","Hefekuchenkrümel","Regenbogenfarbentupfer","Osterfarbenpinsel","Osterblumenwiese","Schokoladenosterhasennester","Tomatensalattunke","Bildergeschichtenhefte","Kindergeschichtenschreiber","Hausaufgabenhefte","Regenmanteltasche","Wiesenblumenblüten","Brotschneidemesser","Lastwagenreifen","Schaukelpferdezüchter"]},
+  3:{words:["Wasserkreislauf","Badewannenauflage","Sonnenblumensamen","Lederhosengürtelschnalle","Löwenkrallenschneider","Winterreifenhersteller","Hummelgesumme","Himmelgebimmel","Sommersonne","Wasseraufbereitungsanlage","Klassenkassenschlüssel","Regenwassertonne","Winterfutterstelle","Reisewetteransage"]},
+  4:{words:["Kaugummiautomaten","Autohinweisschilder","Gummistiefelsocken","Wäscheklammerbeutel","Schulfüllertintenpatronen","Mausefallenklappe","Spiegeleierpfanne","Stangenspargelspitzen","Forellenangelhaken","Schmorbratengewürze","Winterstiefelbürste","Puderzuckerstreuer","Krankenrettungswagen"]},
+  5:{words:["Sommerferienende","Reiseandenkenladen","Alpengipfelaussichten","Panamakanalzone","Kinderfreizeitangebote","Zirkusakrobatennummer","Zauberkastenzubehör","Denkaufgabenlösung","Elektronikwerkzeuge","Wandergruppenleiter","Finanzexpertenrunde","Transatlantikflüge","Medikamentenschachtel","Architektenentwürfe"]}
+};
+
+// Vorgeladene Wochensätze – alle mit *Lückenwörtern* markiert
+// Niveau A: 1 Lücke (erstes *Wort*), Niveau B: alle bis auf Füllwörter, Niveau C: alles
+const DEFAULT_SAETZE=[
+  {id:'w1',woche:1,text:"Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*."},
+  {id:'w2',woche:2,text:"Die *Lehrerin* zählt die *Zähne* des *Hundes*."},
+  {id:'w3',woche:3,text:"Wir *nehmen* das *Mehl* und *backen* zusammen."},
+  {id:'w4',woche:4,text:"Der *Schnee* fällt, und die *Vögel* singen *laut*."},
+  {id:'w5',woche:5,text:"Im *Sommer* fahren wir oft mit dem *Fahrrad* zur *Schule*."},
+  {id:'w6',woche:6,text:"Der *Zahnarzt* wohnt ungefähr zehn *Kilometer* von hier."},
+  {id:'w7',woche:7,text:"Die *Kinder* gehen durch den *Wald* und *sehen* viele *Tiere*."},
+  {id:'w8',woche:8,text:"*Trotzdem* haben wir uns gut *verstanden* und viel *gelacht*."},
+  {id:'w9',woche:9,text:"Während der *Ferien* vergessen wir *trotzdem* nicht das *Lesen*."},
+];
+
+// =================== MERKWÖRTER LOGIK ===================
+function getMerkSelection(merkPos){
+  if(!merkPos)merkPos={};
+  const result=[];
+  outer:for(const kl of[2,3,4]){
+    for(const kat of Object.keys(MERKWOERTER[kl])){
+      if(result.length>=5)break outer;
+      const key=`${kl}_${kat}`;
+      const words=MERKWOERTER[kl][kat].words;
+      const pos=merkPos[key]||0;
+      if(pos<words.length)result.push({key,klasse:kl,kat,name:MERKWOERTER[kl][kat].name,word:words[pos],pos});
+    }
+  }
+  return result;
+}
+
+function getMerkStatus(merkPos){
+  if(!merkPos)merkPos={};
+  let total=0,done=0,curKl=2;
+  for(const kl of[2,3,4]){
+    let klDone=true;
+    for(const kat of Object.keys(MERKWOERTER[kl])){
+      const key=`${kl}_${kat}`;const n=MERKWOERTER[kl][kat].words.length;
+      total+=n;const d=Math.min(merkPos[key]||0,n);done+=d;
+      if(d<n)klDone=false;
+    }
+    if(!klDone){curKl=kl;break;}else curKl=kl+1;
+  }
+  return{total,done,curKl:Math.min(curKl,4)};
+}
+
+// =================== STORAGE ===================
+const DB='fresch_v6_';
+async function dbGet(k){
+  try{const r=await window.storage.get(DB+k);return r?JSON.parse(r.value):null;}
+  catch(e){try{const v=localStorage.getItem(DB+k);return v?JSON.parse(v):null;}catch(_){return null;}}
+}
+async function dbSet(k,v){
+  const s=JSON.stringify(v);
+  try{await window.storage.set(DB+k,s);}catch(e){}
+  try{localStorage.setItem(DB+k,s);}catch(_){}
+}
+
+// =================== STATE ===================
+let kinder=[],curKind=null,curData=null;
+let trainWords=[],trainIdx=0,trainResults=[],trainMerkKeys=[];
+let redoLeft=0;
+let weekWords=[],weekIdx=0,weekResults=[],weekMerkKeys=[];
+let vgWords=[],vgIdx=0;
+let adminId=null,adminData=null,merkEditOpen=false;
+let allSaetze=[];
+let wsCurrentSatz=null,wsLueckenWords=[],wsCorrectWords=new Set();
+
+function mkData(){return{wordQueue:[],activeWords:[],ichKann:[],sessions:[],strategie:'',snakeLevel:1,niveau:'A',merkPos:{},wochensatzHistory:{}};}
+
+async function init(){
+  kinder=await dbGet('kinder')||[];
+  allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;
+  renderLoginSelect();
+  // Stimmen vorladen
+  if(window.speechSynthesis){
+    window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+    window.speechSynthesis.getVoices();
+  }
+}
+
+function renderLoginSelect(){
+  const s=document.getElementById('loginSelect');
+  s.innerHTML='<option value="">— Name wählen —</option>';
+  kinder.forEach(k=>{const o=document.createElement('option');o.value=k.id;o.textContent=k.name;s.appendChild(o);});
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+async function doLogin(){
+  const id=document.getElementById('loginSelect').value;
+  if(!id){alert('Bitte einen Namen wählen');return;}
+  curKind=kinder.find(k=>k.id===id);
+  curData=await dbGet('k_'+id)||mkData();
+  if(!curData.merkPos)curData.merkPos={};
+  if(!curData.wochensatzHistory)curData.wochensatzHistory={};
+  ensureActive();renderHome();showScreen('s-home');
+}
+
+function ensureActive(addNew=false){
+  // Max 5 aktive Merkwörter (noch nicht in Ich-kann)
+  const current=curData.activeWords.filter(e=>!e.isCustom);
+  if(current.length<5||(addNew&&current.length<6)){
+    const sel=getMerkSelection(curData.merkPos);
+    sel.forEach(item=>{
+      if(curData.activeWords.length>=6)return;
+      if(!curData.activeWords.some(e=>e.word===item.word))
+        curData.activeWords.push({word:item.word,correct:0,merkKey:item.key,isCustom:false});
+    });
+  }
+}
+
+function getKW(){const d=new Date(),y=d.getFullYear(),j=new Date(y,0,1);return Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function getWeekKey(){const d=new Date();return `${d.getFullYear()}_kw${getKW()}`;}
+function getDayOfWeek(){return new Date().getDay();}
+
+function renderHome(){
+  document.getElementById('homeName').textContent=curKind.name;
+  document.getElementById('homeAvatar').textContent=curKind.name[0].toUpperCase();
+  document.getElementById('homeWeek').textContent='KW '+getKW();
+  const st=getMerkStatus(curData.merkPos);
+  document.getElementById('homeStats').textContent=curData.ichKann.length+' gelernt · '+st.done+'/'+st.total;
+  document.getElementById('homeStrategie').textContent=curData.strategie?'📌 '+curData.strategie:'';
+  const niv=curData.niveau||'A';
+  const nivEl=document.getElementById('homeNiveau');
+  nivEl.textContent='Niveau '+niv;
+  nivEl.className='tag';
+  nivEl.style.cssText='background:rgba(255,255,255,.2);color:#fff;font-size:11px;margin-left:auto';
+  document.getElementById('homeMerkInfo').textContent='Merkwörterliste Klasse '+st.curKl;
+  const dayDots=document.getElementById('homeDayDots');dayDots.innerHTML='';
+  const day=getDayOfWeek();const wk=getWeekKey();const hist=curData.wochensatzHistory||{};
+  ['Mo','Di','Mi','Do','Fr'].forEach((d,i)=>{
+    const el=document.createElement('div');el.className='day-dot';
+    const dn=i+1;
+    if(hist[wk+'_d'+dn])el.classList.add('done');
+    else if(dn===day)el.classList.add('today');
+    el.title=d;dayDots.appendChild(el);
+  });
+  document.getElementById('homeDayLabel').textContent=['','Mo','Di','Mi','Do','Fr','Sa','So'][day]||'';
+}
+
+// =================== SPEECH ===================
+function speak(text,slow=true){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='de-DE';
+  u.rate=slow?0.8:0.9;
+  u.pitch=1.0;u.volume=1.0;
+  const voices=window.speechSynthesis.getVoices();
+  // Bevorzuge lokale Siri/Premium Stimme
+  const preferred=voices.find(v=>v.lang==='de-DE'&&v.localService&&(v.name.includes('Siri')||v.name.includes('Anna')||v.name.includes('Petra')))||
+                   voices.find(v=>v.lang==='de-DE'&&v.localService)||
+                   voices.find(v=>v.lang.startsWith('de')&&v.localService)||
+                   voices.find(v=>v.lang.startsWith('de'))||null;
+  if(preferred)u.voice=preferred;
+  window.speechSynthesis.speak(u);
+}
+
+// =================== VORGLÜHÜBUNG ===================
+function startVorgluehung(){
+  const lv=curData.snakeLevel||1;
+  const isB=lv>=3;const count=isB?2:(Math.random()<.5?2:3);
+  const data=SNAKE_WORDS[lv]||SNAKE_WORDS[1];
+  vgWords=[...data.words].sort(()=>Math.random()-.5).slice(0,count);
+  vgIdx=0;showVgStep(1);
+}
+
+function setVgDots(){
+  [1,2,3,4].forEach(n=>{
+    const el=document.getElementById('vgDots'+n);if(!el)return;
+    el.innerHTML='';
+    vgWords.forEach((_,i)=>{
+      const d=document.createElement('div');
+      d.className='dot'+(i===vgIdx?' current':i<vgIdx?' done':'');
+      el.appendChild(d);
+    });
+  });
+}
+
+function showVgStep(step){
+  setVgDots();const w=vgWords[vgIdx];
+  if(step===1){document.getElementById('vg1Word').textContent=w;showScreen('s-vg1');}
+  else if(step===2){document.getElementById('vg2Word').textContent=w;showScreen('s-vg2');}
+  else if(step===3){showScreen('s-vg3');}
+  else if(step===4){
+    document.getElementById('vg4Word').textContent=w;
+    const btn=document.getElementById('vgNextBtn');
+    const isLast=vgIdx===vgWords.length-1;
+    if(isLast){btn.textContent='✓ Fertig';btn.onclick=()=>showScreen('s-home');}
+    else{btn.textContent='Nächstes Wort →';btn.onclick=()=>{vgIdx++;showVgStep(1);};}
+    showScreen('s-vg4');
+  }
+}
+function vgNext(s){showVgStep(s);}
+function speakVgCurrent(){speak(vgWords[vgIdx]);}
+
+// =================== WOCHENSATZ ===================
+// Parst "Der *Vater* fährt ..." in Token: {word, isLuecke}
+function parseSatz(text){
+  const tokens=[];
+  const re=/\*([^*]+)\*|([^\s*]+)/g;
+  let m;
+  while((m=re.exec(text))!==null){
+    if(m[1])tokens.push({word:m[1],isLuecke:true});
+    else if(m[2])tokens.push({word:m[2],isLuecke:false});
+  }
+  return tokens;
+}
+
+// Gibt Lückenwörter nach Niveau zurück
+// A: erstes Lückenwort, B: alle Lückenwörter, C: alle Wörter (auch Nicht-Lücken)
+function getLueckenForNiveau(tokens,niveau){
+  const luecken=tokens.filter(t=>t.isLuecke);
+  if(niveau==='A')return new Set([luecken[0]?.word].filter(Boolean));
+  if(niveau==='B')return new Set(luecken.map(t=>t.word));
+  // C: alle Wörter sind Lücken (ganzer Satz)
+  return new Set(tokens.map(t=>t.word));
+}
+
+function getCurrentSatz(){
+  if(!allSaetze.length)return null;
+  const kw=getKW();
+  return allSaetze[(kw-1)%allSaetze.length]||allSaetze[0];
+}
+
+function startWochensatz(){
+  wsCurrentSatz=getCurrentSatz();
+  if(!wsCurrentSatz){alert('Kein Wochensatz vorhanden. Bitte im Admin hinzufügen.');return;}
+  const niv=curData.niveau||'A';
+  const tag=document.getElementById('wsNiveauTag');
+  tag.textContent='Niveau '+niv;
+  tag.className='tag '+(niv==='A'?'green':niv==='B'?'purple':'orange');
+  // Alle Wörter des Satzes bereinigt (ohne Satzzeichen, ohne Sternchen)
+  const cleanText=wsCurrentSatz.text.replace(/\*/g,'');
+  const alleTokens=cleanText.split(/\s+/).filter(Boolean);
+  // Wörter bereinigt für Vergleich, Originalform für Anzeige
+  const tokenObjs=alleTokens.map(w=>({display:w, clean:w.replace(/[.,!?;:]/g,'')}));
+
+  // Nutze individuelle Wörter aus Admin falls gesetzt
+  let luecken;
+  if(curData.satzWoerter&&curData.satzWoerter.length>0){
+    luecken=new Set(curData.satzWoerter);
+  }else{
+    // Fallback: alle Wörter
+    luecken=new Set(tokenObjs.map(t=>t.clean));
+  }
+  wsLueckenWords=Array.from(luecken);wsCorrectWords=new Set();
+
+  // Lückentext anzeigen
+  const display=document.getElementById('wsLueckenDisplay');display.innerHTML='';
+  tokenObjs.forEach(t=>{
+    const span=document.createElement('span');
+    if(luecken.has(t.clean)){
+      span.className='luecken-blank';
+      span.textContent='_____';
+    }else{
+      span.className='luecken-word';
+      span.textContent=t.display;
+    }
+    display.appendChild(span);
+  });
+  const day=getDayOfWeek();
+  document.getElementById('wsFritagHint').style.display=day===5?'block':'none';
+  document.getElementById('ws-listen').style.display='flex';
+  document.getElementById('ws-check').style.display='none';
+  document.getElementById('ws-done').style.display='none';
+  showScreen('s-wochensatz');
+}
+
+function speakWochensatz(){
+  if(wsCurrentSatz)speak(wsCurrentSatz.text.replace(/\*/g,''),false);
+}
+
+function wsShowCheck(){
+  document.getElementById('ws-listen').style.display='none';
+  document.getElementById('ws-check').style.display='flex';
+  // Nutze wsLueckenWords – bereits korrekt gesetzt in startWochensatz
+  const luecken=new Set(wsLueckenWords);
+  const el=document.getElementById('wsWordChips');el.innerHTML='';
+  wsCorrectWords=new Set();
+  // Alle Wörter des Satzes – bereinigt
+  const cleanText2=wsCurrentSatz.text.replace(/\*/g,'');
+  const alleTokens2=cleanText2.split(/\s+/).filter(Boolean);
+  const tokenObjs2=alleTokens2.map(w=>({display:w,clean:w.replace(/[.,!?;:]/g,'')}));
+  wsCorrectWords=new Set();
+  tokenObjs2.forEach(t=>{
+    if(!t.clean)return;
+    const chip=document.createElement('span');
+    if(luecken.has(t.clean)){
+      chip.className='satz-chip';
+      chip.textContent=t.display;
+      chip.onclick=()=>{
+        chip.classList.toggle('correct');
+        if(chip.classList.contains('correct'))wsCorrectWords.add(t.clean);
+        else wsCorrectWords.delete(t.clean);
+      };
+    }else{
+      chip.className='satz-chip plain';
+      chip.textContent=t.display;
+    }
+    el.appendChild(chip);
+  });
+}
+
+async function wsSave(){
+  const day=getDayOfWeek();const isFriday=day===5;
+  const wk=getWeekKey();
+  if(!curData.wochensatzHistory)curData.wochensatzHistory={};
+  curData.wochensatzHistory[wk+'_d'+day]=true;
+  // Falsch = Lückenwörter die NICHT angetippt wurden
+  const wrong=wsLueckenWords.filter(w=>!wsCorrectWords.has(w));
+  let addedWords=[];
+  if(isFriday&&wrong.length>0){
+    wrong.forEach(w=>{
+      const clean=w.replace(/[.,!?;:]/g,'').trim();
+      if(clean&&!curData.activeWords.some(e=>e.word===clean)&&!curData.wordQueue.includes(clean)){
+        curData.wordQueue.push(clean);addedWords.push(clean);
+      }
+    });
+    ensureActive();
+  }
+  await dbSet('k_'+curKind.id,curData);
+  document.getElementById('ws-check').style.display='none';
+  document.getElementById('ws-done').style.display='flex';
+  document.getElementById('ws-done').style.flexDirection='column';
+  if(isFriday&&addedWords.length>0){
+    document.getElementById('wsDoneMsg').textContent='Freitagskontrolle ✓';
+    document.getElementById('wsDoneSub').textContent=addedWords.length+' Wörter kommen zu deiner Lernliste';
+    const el=document.getElementById('wsAddedWords');el.innerHTML='';
+    addedWords.forEach(w=>{const t=document.createElement('span');t.className='tag red';t.textContent='+ '+w;el.appendChild(t);});
+  }else if(wrong.length===0){
+    document.getElementById('wsDoneMsg').textContent='Perfekt! Alles richtig! 🎉';
+    document.getElementById('wsDoneSub').textContent='Der Satz sitzt bereits sehr gut!';
+    document.getElementById('wsAddedWords').innerHTML='';
+  }else{
+    document.getElementById('wsDoneMsg').textContent='Gut geübt! ✓';
+    document.getElementById('wsDoneSub').textContent=wrong.length+' Wörter noch im Fokus – am Freitag wird abgerechnet';
+    document.getElementById('wsAddedWords').innerHTML='';
+  }
+}
+
+// =================== TRAINING ===================
+function startTraining(){
+  ensureActive();
+  if(!curData.activeWords.length){alert('Keine Lernwörter vorhanden.');return;}
+  const pool=curData.activeWords.filter(e=>e.correct<3).slice(0,5);
+  if(!pool.length){alert('Alle Wörter sitzen! 🎉');return;}
+  trainWords=pool.map(e=>e.word);trainMerkKeys=pool.map(e=>e.merkKey||null);
+  trainIdx=0;trainResults=[];
+  document.getElementById('trainTotal').textContent=trainWords.length;
+  showScreen('s-train');showPhase('dictate');speakCurrent();
+}
+
+function showPhase(p){
+  ['dictate','check','redo','result'].forEach(x=>{
+    const el=document.getElementById('ph-'+x);
+    el.style.display=x===p?'flex':'none';
+    if(x===p)el.style.flexDirection='column';
+  });
+  document.getElementById('trainCounter').textContent=trainIdx+1;
+  renderDots();
+}
+
+function renderDots(){
+  const el=document.getElementById('trainDots');el.innerHTML='';
+  trainWords.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='dot'+(i===trainIdx?' current':i<trainIdx?(trainResults[i]?' done':' error'):'');
+    el.appendChild(d);
+  });
+}
+
+function speakCurrent(){speak(trainWords[trainIdx]);}
+
+function showCheck(){
+  document.getElementById('checkWord').textContent=trainWords[trainIdx];showPhase('check');
+}
+
+function markResult(ok){
+  trainResults[trainIdx]=ok;
+  const word=trainWords[trainIdx];const entry=curData.activeWords.find(e=>e.word===word);
+  if(ok){
+    if(entry)entry.correct=(entry.correct||0)+1;
+    const c=entry?.correct||1;
+    if(c>=3){
+      curData.ichKann.push({word,date:new Date().toISOString()});
+      curData.activeWords=curData.activeWords.filter(e=>e.word!==word);
+      const mk=trainMerkKeys[trainIdx];
+      if(mk)curData.merkPos[mk]=(curData.merkPos[mk]||0)+1;
+      ensureActive(true);setResult('⭐','Ich-kann-Wort!',`"${word}" kommt in die Ich-kann-Kartei!`);
+    }else{
+      ensureActive(true);// 1x richtig → neues Wort rückt nach
+      setResult('✅','Richtig!',`${c}/3 – weiter so! Neues Wort kommt dazu.`);
+    }
+    dbSet('k_'+curKind.id,curData);showPhase('result');
+  }else{
+    redoLeft=3;document.getElementById('redoWord').textContent=word;document.getElementById('redoCount').textContent=redoLeft;showPhase('redo');
+  }
+}
+
+function doneRedo(){
+  redoLeft--;
+  if(redoLeft>0)document.getElementById('redoCount').textContent=redoLeft;
+  else{
+    const e=curData.activeWords.find(x=>x.word===trainWords[trainIdx]);if(e)e.correct=0;
+    setResult('💪','Gut geübt!',`"${trainWords[trainIdx]}" kommt nächste Einheit nochmals`);
+    dbSet('k_'+curKind.id,curData);showPhase('result');
+  }
+}
+
+function setResult(emoji,msg,sub){
+  document.getElementById('resultEmoji').textContent=emoji;
+  document.getElementById('resultMsg').textContent=msg;
+  document.getElementById('resultSub').textContent=sub;
+  document.getElementById('resultNextBtn').textContent=trainIdx<trainWords.length-1?'Weiter →':'Fertig!';
+}
+
+function nextWord(){
+  if(trainIdx<trainWords.length-1){trainIdx++;showPhase('dictate');speakCurrent();}else showDone();
+}
+
+function showDone(){
+  const el=document.getElementById('doneWordList');el.innerHTML='';
+  trainWords.forEach((w,i)=>{
+    const d=document.createElement('div');d.className='word-row';
+    d.innerHTML=`<span style="font-weight:600">${w}</span><span class="tag ${trainResults[i]?'green':'red'}">${trainResults[i]?'✓ Richtig':'✗ Fehler'}</span>`;
+    el.appendChild(d);
+  });
+  curData.sessions.push({date:new Date().toISOString(),words:trainWords,results:trainResults});
+  dbSet('k_'+curKind.id,curData);showScreen('s-done');
+}
+
+// =================== WOCHENÜBERSICHT ===================
+function showWeekReview(){
+  document.getElementById('wk-start').style.display='flex';
+  document.getElementById('wk-review').style.display='none';
+  document.getElementById('wk-stats').style.display='none';
+  const el=document.getElementById('ikMain');
+  el.innerHTML=curData.ichKann.length?curData.ichKann.map(e=>`<span class="tag green" style="margin-bottom:4px">⭐ ${e.word}</span>`).join(''):'<p class="muted">Noch keine Wörter gelernt</p>';
+  showScreen('s-week');
+}
+
+function startWeekReview(){
+  weekWords=curData.activeWords.slice(0,5).map(e=>e.word);weekMerkKeys=curData.activeWords.slice(0,5).map(e=>e.merkKey||null);
+  if(!weekWords.length){alert('Keine aktiven Wörter.');return;}
+  weekIdx=0;weekResults=[];
+  document.getElementById('wkTotal').textContent=weekWords.length;
+  document.getElementById('wk-start').style.display='none';document.getElementById('wk-review').style.display='flex';
+  document.getElementById('wkCheckBox').style.display='none';updateWkCtr();speakWeekWord();
+}
+function speakWeekWord(){speak(weekWords[weekIdx]);}
+function updateWkCtr(){document.getElementById('wkCtr').textContent=weekIdx+1;}
+function checkWeekWord(){document.getElementById('wkSolution').textContent=weekWords[weekIdx];document.getElementById('wkCheckBox').style.display='block';}
+function markWeekResult(ok){
+  weekResults[weekIdx]=ok;
+  if(ok){
+    const e=curData.activeWords.find(x=>x.word===weekWords[weekIdx]);
+    if(e){e.correct=(e.correct||0)+1;if(e.correct>=3){curData.ichKann.push({word:e.word,date:new Date().toISOString()});const mk=weekMerkKeys[weekIdx];if(mk)curData.merkPos[mk]=(curData.merkPos[mk]||0)+1;curData.activeWords=curData.activeWords.filter(x=>x.word!==e.word);ensureActive();}}
+  }
+  dbSet('k_'+curKind.id,curData);
+  if(weekIdx<weekWords.length-1){weekIdx++;updateWkCtr();document.getElementById('wkCheckBox').style.display='none';speakWeekWord();}
+  else showWkStats();
+}
+function showWkStats(){
+  document.getElementById('wk-review').style.display='none';document.getElementById('wk-stats').style.display='flex';
+  document.getElementById('stOk').textContent=weekResults.filter(Boolean).length;
+  document.getElementById('stErr').textContent=weekResults.filter(x=>!x).length;
+  document.getElementById('stIk').textContent=curData.ichKann.length;
+  const el=document.getElementById('wkWordResults');el.innerHTML='';
+  weekWords.forEach((w,i)=>{const d=document.createElement('div');d.className='word-row';d.innerHTML=`<span style="font-weight:600">${w}</span><span class="tag ${weekResults[i]?'green':'red'}">${weekResults[i]?'✓':'✗'}</span>`;el.appendChild(d);});
+  const ik=document.getElementById('ikStats');
+  ik.innerHTML=curData.ichKann.length?curData.ichKann.map(e=>`<span class="tag green" style="margin-bottom:4px">⭐ ${e.word}</span>`).join(''):'<p class="muted">Noch keine</p>';
+}
+function finishWeek(){ensureActive();renderHome();showScreen('s-home');}
+
+// =================== ADMIN ===================
+async function showAdminScreen(){kinder=await dbGet('kinder')||[];allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;renderAdminList();showScreen('s-admin');}
+
+function renderAdminList(){
+  const el=document.getElementById('adminKindList');el.innerHTML='';
+  const colors=['#3B7DD8','#3A9B5C','#D06820','#C94040','#7C4DCC','#C8940A'];
+  kinder.forEach((k,i)=>{
+    const d=document.createElement('div');d.className='card';d.style.cssText='display:flex;align-items:center;justify-content:space-between';
+    d.innerHTML=`<div style="display:flex;align-items:center;gap:12px"><div class="avatar" style="background:${colors[i%colors.length]};border-radius:12px;width:42px;height:42px;font-size:16px">${k.name[0].toUpperCase()}</div><span style="font-weight:600;font-size:16px">${k.name}</span></div><button class="btn primary sm" onclick="openKindAdmin('${k.id}')">Bearbeiten →</button>`;
+    el.appendChild(d);
+  });
+}
+
+async function addKind(){
+  const n=document.getElementById('newKindName').value.trim();if(!n)return;
+  kinder.push({id:'k_'+Date.now(),name:n});await dbSet('kinder',kinder);
+  document.getElementById('newKindName').value='';renderAdminList();renderLoginSelect();
+}
+
+async function openKindAdmin(id){
+  adminId=id;merkEditOpen=false;
+  const k=kinder.find(x=>x.id===id);
+  document.getElementById('adminKindTitle').textContent=k.name;
+  adminData=await dbGet('k_'+id)||mkData();
+  if(!adminData.merkPos)adminData.merkPos={};
+  document.getElementById('kindStrategie').value=adminData.strategie||'';
+  document.getElementById('kindNiveau').value=adminData.niveau||'A';
+  document.getElementById('kindSnakeLevel').value=adminData.snakeLevel||1;
+  const st=getMerkStatus(adminData.merkPos);
+  document.getElementById('adminMerkStatus').innerHTML=`<b>Aktuelle Klasse: Klasse ${st.curKl}</b><br>Fortschritt: ${st.done} von ${st.total} Wörtern gelernt`;
+  document.getElementById('merkEditSection').style.display='none';
+  document.getElementById('merkEditBtn').textContent='✏️ Bearbeiten';
+  renderAdminWords();
+  renderSatzChipsAdmin();
+  showScreen('s-admin-kind');
+}
+
+async function saveSettings(){
+  adminData.strategie=document.getElementById('kindStrategie').value;
+  adminData.niveau=document.getElementById('kindNiveau').value;
+  adminData.snakeLevel=parseInt(document.getElementById('kindSnakeLevel').value);
+  // satzWoerter wird live durch Chips aktualisiert
+  await dbSet('k_'+adminId,adminData);alert('✓ Gespeichert!');
+}
+
+async function resetKind(){
+  if(!confirm(`Fortschritt zurücksetzen?\n\nAlle Lernfortschritte und die Ich-kann-Kartei werden gelöscht.`))return;
+  adminData.activeWords=[];adminData.ichKann=[];adminData.sessions=[];adminData.merkPos={};adminData.wordQueue=[];adminData.wochensatzHistory={};
+  await dbSet('k_'+adminId,adminData);alert('✓ Fortschritt zurückgesetzt.');openKindAdmin(adminId);
+}
+
+async function deleteKind(){
+  const name=kinder.find(k=>k.id===adminId)?.name;
+  if(!confirm(`Kind "${name}" wirklich löschen?\n\nAlle Daten werden dauerhaft entfernt.`))return;
+  kinder=kinder.filter(k=>k.id!==adminId);await dbSet('kinder',kinder);
+  try{await window.storage.delete(DB+'k_'+adminId);}catch(e){}
+  try{localStorage.removeItem(DB+'k_'+adminId);}catch(_){}
+  renderAdminList();renderLoginSelect();showScreen('s-admin');
+}
+
+function toggleMerkEdit(){
+  merkEditOpen=!merkEditOpen;
+  document.getElementById('merkEditSection').style.display=merkEditOpen?'block':'none';
+  document.getElementById('merkEditBtn').textContent=merkEditOpen?'✕ Schliessen':'✏️ Bearbeiten';
+  if(merkEditOpen)renderMerkEdit();
+}
+
+function renderMerkEdit(){
+  const el=document.getElementById('merkEditList');el.innerHTML='';
+  [2,3,4].forEach(kl=>{
+    const klDiv=document.createElement('div');
+    klDiv.innerHTML=`<div style="font-size:13px;font-weight:700;color:var(--blue);padding:12px 0 4px;border-top:2px solid var(--border);margin-top:8px">Klasse ${kl}</div>`;
+    Object.keys(MERKWOERTER[kl]).forEach(kat=>{
+      const key=`${kl}_${kat}`;const pos=adminData.merkPos[key]||0;const words=MERKWOERTER[kl][kat].words;
+      const catDiv=document.createElement('div');
+      catDiv.innerHTML=`<div class="merk-cat-header">${MERKWOERTER[kl][kat].name} <span class="tag blue" style="font-size:10px">${pos}/${words.length}</span></div>`;
+      words.forEach((w,i)=>{
+        const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)';
+        const done=i<pos;
+        row.innerHTML=`<span style="font-size:14px;${done?'color:var(--green);text-decoration:line-through;':''}">${w}</span><div style="display:flex;gap:6px;align-items:center"><span class="tag ${done?'green':i===pos?'blue':'grey'}" style="font-size:10px">${done?'✓':i===pos?'aktiv':'—'}</span><button onclick="deleteMerkWord(${kl},'${kat}',${i})" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:2px 6px">✕</button></div>`;
+        catDiv.appendChild(row);
+      });
+      klDiv.appendChild(catDiv);
+    });
+    el.appendChild(klDiv);
+  });
+}
+
+async function deleteMerkWord(kl,kat,idx){
+  if(!confirm(`Wort "${MERKWOERTER[kl][kat].words[idx]}" entfernen?`))return;
+  MERKWOERTER[kl][kat].words.splice(idx,1);
+  const key=`${kl}_${kat}`;
+  if((adminData.merkPos[key]||0)>idx)adminData.merkPos[key]=Math.max(0,(adminData.merkPos[key]||1)-1);
+  await dbSet('k_'+adminId,adminData);renderMerkEdit();
+  const st=getMerkStatus(adminData.merkPos);
+  document.getElementById('adminMerkStatus').innerHTML=`<b>Aktuelle Klasse: Klasse ${st.curKl}</b><br>Fortschritt: ${st.done} von ${st.total} Wörtern gelernt`;
+}
+
+function renderAdminWords(){
+  const custom=(adminData.wordQueue||[]);const customActive=(adminData.activeWords||[]).filter(e=>e.isCustom).map(e=>e.word);
+  const all=[...new Set([...customActive,...custom])];
+  const cnt=document.getElementById('wordCount');if(cnt)cnt.textContent=all.length+' Wörter';
+  const el=document.getElementById('adminWordList');el.innerHTML='';
+  if(!all.length){el.innerHTML='<p class="muted" style="padding:8px 0">Keine Zusatzwörter</p>';return;}
+  all.forEach(w=>{const d=document.createElement('div');d.className='word-row';const esc=w.replace(/'/g,"\\'");d.innerHTML=`<span style="font-weight:600">${w}</span><button onclick="removeWord('${esc}')" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:4px 8px">✕</button>`;el.appendChild(d);});
+}
+
+async function addWord(){const inp=document.getElementById('newWordInput');const w=inp.value.trim();if(!w)return;adminData.wordQueue=adminData.wordQueue||[];if(!adminData.wordQueue.includes(w)&&!(adminData.activeWords||[]).some(e=>e.word===w))adminData.wordQueue.push(w);await dbSet('k_'+adminId,adminData);inp.value='';renderAdminWords();}
+async function addBulkWords(){const inp=document.getElementById('bulkWords');const ws=inp.value.split(',').map(w=>w.trim()).filter(Boolean);adminData.wordQueue=adminData.wordQueue||[];ws.forEach(w=>{if(!adminData.wordQueue.includes(w)&&!(adminData.activeWords||[]).some(e=>e.word===w))adminData.wordQueue.push(w);});await dbSet('k_'+adminId,adminData);inp.value='';renderAdminWords();}
+async function removeWord(w){adminData.wordQueue=(adminData.wordQueue||[]).filter(x=>x!==w);adminData.activeWords=(adminData.activeWords||[]).filter(e=>e.word!==w);await dbSet('k_'+adminId,adminData);renderAdminWords();}
+
+// =================== SATZWÖRTER PRO KIND ===================
+function renderSatzChipsAdmin(){
+  const el=document.getElementById('kindSatzChips');
+  if(!el)return;
+  el.innerHTML='';
+  if(!allSaetze.length){el.innerHTML='<p class="muted">Kein Wochensatz vorhanden</p>';return;}
+  const kw=getKW();
+  const satz=allSaetze[(kw-1)%allSaetze.length]||allSaetze[0];
+  // ALLE Wörter des Satzes – Satzzeichen entfernen
+  const alleWorter=satz.text.replace(/\*/g,'').split(/\s+/).filter(Boolean).map(w=>w.replace(/[.,!?;:]/g,''));
+  const selected=new Set(adminData.satzWoerter||alleWorter);// default: alle ausgewählt
+  el.innerHTML='<p class="muted" style="width:100%;font-size:12px;margin-bottom:6px">Tippe die Wörter an, die das Kind schreiben muss:</p>';
+  alleWorter.forEach(w=>{
+    if(!w)return;
+    const chip=document.createElement('span');
+    chip.className='satz-chip'+(selected.has(w)?' correct':'');
+    chip.textContent=w;chip.style.fontSize='15px';
+    chip.onclick=()=>{
+      chip.classList.toggle('correct');
+      if(chip.classList.contains('correct'))selected.add(w);
+      else selected.delete(w);
+      adminData.satzWoerter=Array.from(selected);
+    };
+    el.appendChild(chip);
+  });
+  adminData.satzWoerter=Array.from(selected);
+}
+
+// =================== WOCHENSÄTZE ADMIN ===================
+async function showSaetzeAdmin(){allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;renderSaetze();showScreen('s-admin-saetze');}
+
+function renderSaetze(){
+  const el=document.getElementById('saetzeList');el.innerHTML='';
+  allSaetze.forEach((s,i)=>{
+    const card=document.createElement('div');card.className='card';
+    // Vorschau: zeige Satz mit markierten Wörtern
+    const preview=s.text.replace(/\*([^*]+)\*/g,'<strong style="color:var(--purple)">$1</strong>');
+    card.innerHTML=`
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
+        <span class="tag purple" style="flex-shrink:0;margin-top:2px">Woche ${s.woche||i+1}</span>
+        <p style="font-size:15px;line-height:1.6;flex:1">${preview}</p>
+        <button onclick="deleteSatz('${s.id}')" style="background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:0 4px;flex-shrink:0">✕</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="tag grey" style="font-size:11px">A: ${getNiveauPreview(s.text,'A')}</span>
+        <span class="tag purple" style="font-size:11px">B: alle Lücken</span>
+        <span class="tag orange" style="font-size:11px">C: ganzer Satz</span>
+      </div>`;
+    el.appendChild(card);
+  });
+}
+
+function getNiveauPreview(text,niv){
+  const tokens=parseSatz(text);const luecken=tokens.filter(t=>t.isLuecke);
+  if(niv==='A')return luecken[0]?`1 Lücke: "${luecken[0].word}"`: 'keine Lücken';
+  return luecken.length+' Lücken';
+}
+
+async function addSatz(){
+  const text=document.getElementById('newSatzText').value.trim();const woche=document.getElementById('newSatzWoche').value.trim();
+  if(!text){alert('Bitte einen Satz eingeben.');return;}
+  allSaetze.push({id:'ws_'+Date.now(),woche:parseInt(woche)||allSaetze.length+1,text});
+  await dbSet('saetze',allSaetze);document.getElementById('newSatzText').value='';document.getElementById('newSatzWoche').value='';renderSaetze();
+}
+
+async function deleteSatz(id){
+  if(!confirm('Satz löschen?'))return;allSaetze=allSaetze.filter(s=>s.id!==id);await dbSet('saetze',allSaetze);renderSaetze();
+}
+
+init();
+</script>
+</body>
+</html>
