@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stimmen-Test</title>
+<style>
+body{font-family:-apple-system,sans-serif;padding:1.5rem;background:#f0f0f5}
+.card{background:#fff;border-radius:14px;padding:1.25rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+button{padding:12px 20px;border-radius:10px;border:none;font-size:16px;font-weight:600;cursor:pointer;margin:4px}
+.btn-blue{background:#3B7DD8;color:#fff}
+.btn-green{background:#3A9B5C;color:#fff}
+.voice-row{padding:8px;border-bottom:1px solid #eee;font-size:13px}
+.voice-row.de{background:#E4F5EC}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2 style="margin-bottom:8px">🔊 Stimmen-Test</h2>
+  <p style="font-size:13px;color:#666;margin-bottom:12px">Tippe auf einen Button um die Stimme zu testen</p>
+  <button class="btn-blue" onclick="testSpeak('Standard','de-DE',0.8)">Standard de-DE</button>
+  <button class="btn-green" onclick="testSiri()">Siri suchen & testen</button>
+  <button onclick="testSpeak('Hallo, ich bin die Stimme','de-CH',0.8)">de-CH</button>
+</div>
+<div class="card">
+  <h3 style="margin-bottom:8px">Alle verfügbaren Stimmen:</h3>
+  <button onclick="listVoices()" style="background:#555;color:#fff;padding:10px 16px;border-radius:8px;border:none;font-size:14px;margin-bottom:10px">Stimmen laden</button>
+  <div id="voiceList"></div>
+</div>
+<div class="card" style="background:#FEF7DC">
+  <div id="status" style="font-size:14px;color:#333">Status: warte auf Aktion...</div>
+</div>
+
+<script>
+function setStatus(msg){document.getElementById('status').textContent='Status: '+msg;}
+
+function testSpeak(text, lang, rate){
+  if(!window.speechSynthesis){setStatus('speechSynthesis nicht verfügbar!');return;}
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance('Hallo, ich bin eine Teststimme für das FRESCH Training.');
+  u.lang=lang;u.rate=rate;u.pitch=1;u.volume=1;
+  setStatus('Spreche mit lang='+lang+'...');
+  u.onend=()=>setStatus('Fertig.');
+  u.onerror=(e)=>setStatus('Fehler: '+e.error);
+  window.speechSynthesis.speak(u);
+}
+
+function testSiri(){
+  if(!window.speechSynthesis){setStatus('Nicht verfügbar');return;}
+  window.speechSynthesis.cancel();
+  const voices=window.speechSynthesis.getVoices();
+  const siri=voices.find(v=>/siri/i.test(v.name)&&v.lang.startsWith('de'))||
+              voices.find(v=>/anna/i.test(v.name)&&v.lang.startsWith('de'))||
+              voices.find(v=>v.localService&&v.lang.startsWith('de'))||
+              voices.find(v=>v.lang.startsWith('de'));
+  if(!siri){setStatus('Keine deutsche Stimme gefunden! Anzahl Stimmen: '+voices.length);return;}
+  const u=new SpeechSynthesisUtterance('Hallo, ich bin '+siri.name+'. Ich spreche jetzt für das FRESCH Training.');
+  u.voice=siri;u.lang=siri.lang;u.rate=0.8;u.pitch=1;u.volume=1;
+  setStatus('Stimme: '+siri.name+' ('+siri.lang+') lokal='+siri.localService);
+  u.onend=()=>setStatus('Fertig. Stimme war: '+siri.name);
+  u.onerror=(e)=>setStatus('Fehler: '+e.error);
+  window.speechSynthesis.speak(u);
+}
+
+function listVoices(){
+  const voices=window.speechSynthesis.getVoices();
+  const el=document.getElementById('voiceList');
+  el.innerHTML='<p style="font-size:12px;color:#666">'+voices.length+' Stimmen gefunden. Grün = Deutsch</p>';
+  voices.forEach(v=>{
+    const d=document.createElement('div');
+    d.className='voice-row'+(v.lang.startsWith('de')?' de':'');
+    d.innerHTML='<b>'+v.name+'</b> | '+v.lang+' | lokal: '+v.localService+
+      ' <button onclick="testVoice(''+v.name.replace(/'/g,"\'")+'')" style="padding:4px 8px;border-radius:6px;border:none;background:#3B7DD8;color:#fff;font-size:12px;cursor:pointer">Test</button>';
+    el.appendChild(d);
+  });
+}
+
+function testVoice(name){
+  const voices=window.speechSynthesis.getVoices();
+  const v=voices.find(x=>x.name===name);
+  if(!v){setStatus('Stimme nicht gefunden');return;}
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance('Der Vater fährt mit dem Fahrrad zur Bahn.');
+  u.voice=v;u.lang=v.lang;u.rate=0.8;u.pitch=1;u.volume=1;
+  setStatus('Teste: '+v.name);
+  u.onend=()=>setStatus('Fertig: '+v.name);
+  window.speechSynthesis.speak(u);
+}
+
+// Auto-load nach kurzer Verzögerung
+window.speechSynthesis.onvoiceschanged=listVoices;
+setTimeout(listVoices,500);
+</script>
+</body>
+</html>
