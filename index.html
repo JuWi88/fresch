@@ -654,21 +654,42 @@ function renderHome(){
 }
 
 // =================== SPEECH ===================
+// Stimmen-Cache
+let _cachedVoice=null;
+function getBestVoice(){
+  if(_cachedVoice)return _cachedVoice;
+  const voices=window.speechSynthesis.getVoices();
+  // Priorität: Siri Deutsch > Anna > lokale de-DE > lokale de-* > beliebige de
+  _cachedVoice=
+    voices.find(v=>v.localService&&/siri/i.test(v.name)&&v.lang.startsWith('de'))||
+    voices.find(v=>v.localService&&/anna/i.test(v.name)&&v.lang.startsWith('de'))||
+    voices.find(v=>v.localService&&v.lang==='de-DE')||
+    voices.find(v=>v.localService&&v.lang.startsWith('de'))||
+    voices.find(v=>v.lang==='de-DE')||
+    voices.find(v=>v.lang.startsWith('de'))||
+    null;
+  return _cachedVoice;
+}
+
 function speak(text,slow=true){
   if(!window.speechSynthesis)return;
   window.speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang='de-DE';
-  u.rate=slow?0.8:0.9;
-  u.pitch=1.0;u.volume=1.0;
+  const trySpeak=()=>{
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='de-DE';
+    u.rate=slow?0.75:0.88;
+    u.pitch=1.0;u.volume=1.0;
+    const v=getBestVoice();
+    if(v){u.voice=v;u.lang=v.lang;}
+    window.speechSynthesis.speak(u);
+  };
+  // Stimmen manchmal asynchron – kurz warten falls noch nicht geladen
   const voices=window.speechSynthesis.getVoices();
-  // Bevorzuge lokale Siri/Premium Stimme
-  const preferred=voices.find(v=>v.lang==='de-DE'&&v.localService&&(v.name.includes('Siri')||v.name.includes('Anna')||v.name.includes('Petra')))||
-                   voices.find(v=>v.lang==='de-DE'&&v.localService)||
-                   voices.find(v=>v.lang.startsWith('de')&&v.localService)||
-                   voices.find(v=>v.lang.startsWith('de'))||null;
-  if(preferred)u.voice=preferred;
-  window.speechSynthesis.speak(u);
+  if(voices.length>0){trySpeak();}
+  else{
+    window.speechSynthesis.onvoiceschanged=()=>{_cachedVoice=null;trySpeak();};
+    setTimeout(trySpeak,300);
+  }
 }
 
 // =================== VORGLÜHÜBUNG ===================
