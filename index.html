@@ -431,7 +431,7 @@ textarea{resize:vertical;min-height:70px}
       <input type="text" id="bulkWords" placeholder="weil, auch, dann, ...">
       <button class="btn ghost sm" onclick="addBulkWords()">Alle +</button>
     </div>
-    <div style="margin-top:12px"><div id="adminWordList"></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;margin-bottom:6px"><span style="font-size:14px;font-weight:600">Zusatzwörter</span><span id="wordCount" class="tag blue"></span></div><div id="adminWordList"></div>
   </div>
 </div>
 
@@ -758,7 +758,6 @@ function getCurrentSatz(){
 function startWochensatz(){
   wsCurrentSatz=getCurrentSatz();
   if(!wsCurrentSatz){alert('Kein Wochensatz vorhanden. Bitte im Admin hinzufügen.');return;}
-  const niv='C';// alle Wörter standardmässig
 
   // Alle Wörter des Satzes bereinigt (ohne Satzzeichen, ohne Sternchen)
   const cleanText=wsCurrentSatz.text.replace(/\*/g,'');
