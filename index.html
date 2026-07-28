@@ -393,21 +393,8 @@ textarea{resize:vertical;min-height:70px}
   </div>
   <div class="card">
     <h3 style="margin-bottom:12px">Einstellungen</h3>
-    <span class="section-label">FRESCH-STRATEGIE</span>
-    <select id="kindStrategie" style="margin-bottom:12px">
-      <option value="">— wählen —</option>
-      <option value="Aa – Gross oder Klein">Aa – Gross oder Klein</option>
-      <option value="〜 – Silben Schwingen">〜 – Silben Schwingen</option>
-      <option value="↪ – Verlängern">↪ – Verlängern</option>
-      <option value="⚡ – Ableiten">⚡ – Ableiten</option>
-      <option value="M – Merken">M – Merken</option>
-    </select>
-    <span class="section-label">NIVEAU</span>
-    <select id="kindNiveau" style="margin-bottom:12px">
-      <option value="A">Niveau A – 1 Lücke</option>
-      <option value="B">Niveau B – mehrere Lücken</option>
-      <option value="C">Niveau C – ganzer Satz</option>
-    </select>
+
+
     <span class="section-label">WOCHENSATZ – WÖRTER FÜR DIESES KIND</span>
     <p class="muted" style="margin-bottom:8px;font-size:12px">Tippe an, welche Wörter dieses Kind diese Woche schreiben muss:</p>
     <div id="kindSatzChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;padding:10px;background:var(--bg);border-radius:10px;min-height:44px"></div>
@@ -634,12 +621,8 @@ function renderHome(){
   document.getElementById('homeWeek').textContent='KW '+getKW();
   const st=getMerkStatus(curData.merkPos);
   document.getElementById('homeStats').textContent=curData.ichKann.length+' gelernt · '+st.done+'/'+st.total;
-  document.getElementById('homeStrategie').textContent=curData.strategie?'📌 '+curData.strategie:'';
-  const niv=curData.niveau||'A';
-  const nivEl=document.getElementById('homeNiveau');
-  nivEl.textContent='Niveau '+niv;
-  nivEl.className='tag';
-  nivEl.style.cssText='background:rgba(255,255,255,.2);color:#fff;font-size:11px;margin-left:auto';
+  document.getElementById('homeStrategie').textContent='';
+  document.getElementById('homeNiveau').textContent='';
   document.getElementById('homeMerkInfo').textContent='Merkwörterliste Klasse '+st.curKl;
   const dayDots=document.getElementById('homeDayDots');dayDots.innerHTML='';
   const day=getDayOfWeek();const wk=getWeekKey();const hist=curData.wochensatzHistory||{};
@@ -776,21 +759,19 @@ function startWochensatz(){
   wsCurrentSatz=getCurrentSatz();
   if(!wsCurrentSatz){alert('Kein Wochensatz vorhanden. Bitte im Admin hinzufügen.');return;}
   const niv=curData.niveau||'A';
-  const tag=document.getElementById('wsNiveauTag');
-  tag.textContent='Niveau '+niv;
-  tag.className='tag '+(niv==='A'?'green':niv==='B'?'purple':'orange');
+
   // Alle Wörter des Satzes bereinigt (ohne Satzzeichen, ohne Sternchen)
   const cleanText=wsCurrentSatz.text.replace(/\*/g,'');
   const alleTokens=cleanText.split(/\s+/).filter(Boolean);
   // Wörter bereinigt für Vergleich, Originalform für Anzeige
   const tokenObjs=alleTokens.map(w=>({display:w, clean:w.replace(/[.,!?;:]/g,'')}));
 
-  // Nutze individuelle Wörter aus Admin falls gesetzt
+  // Nutze individuelle Wörter aus Admin (von Lehrperson festgelegt)
   let luecken;
   if(curData.satzWoerter&&curData.satzWoerter.length>0){
     luecken=new Set(curData.satzWoerter);
   }else{
-    // Fallback: alle Wörter
+    // Fallback: alle Wörter des Satzes
     luecken=new Set(tokenObjs.map(t=>t.clean));
   }
   wsLueckenWords=Array.from(luecken);wsCorrectWords=new Set();
@@ -1060,8 +1041,6 @@ async function openKindAdmin(id){
 }
 
 async function saveSettings(){
-  adminData.strategie=document.getElementById('kindStrategie').value;
-  adminData.niveau=document.getElementById('kindNiveau').value;
   adminData.snakeLevel=parseInt(document.getElementById('kindSnakeLevel').value);
   // satzWoerter wird live durch Chips aktualisiert
   await dbSet('k_'+adminId,adminData);alert('✓ Gespeichert!');
