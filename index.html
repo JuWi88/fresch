@@ -88,7 +88,6 @@ textarea{resize:vertical;min-height:70px}
 /* Merk cat header */
 .merk-cat-header{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 4px}
 </style>
-<script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
 </head>
 <body>
 
@@ -656,23 +655,54 @@ function renderHome(){
 
 // =================== SPEECH ===================
 function speak(text, slow=true){
-  const rate = slow ? 0.75 : 0.9;
-  // ResponsiveVoice: flüssiges Deutsch über Internet
-  if(typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()){
-    responsiveVoice.cancel();
-    responsiveVoice.speak(text, 'Deutsch Female', {rate: rate, pitch: 1, volume: 1});
-    return;
-  }
-  // Fallback: Browser-Stimme
   if(!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'de-DE'; u.rate = rate; u.pitch = 1; u.volume = 1;
-  const voices = window.speechSynthesis.getVoices();
-  const v = voices.find(v=>v.lang.startsWith('de')&&v.localService)||
-            voices.find(v=>v.lang.startsWith('de'))||null;
-  if(v) u.voice = v;
-  window.speechSynthesis.speak(u);
+
+  function doSpeak(voices){
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = slow ? 0.75 : 0.9;
+    u.pitch = 1; u.volume = 1;
+
+    // Alle deutschen Stimmen loggen (einmalig)
+    if(!window._voicesLogged){
+      window._voicesLogged = true;
+      const deVoices = voices.filter(v=>v.lang.startsWith('de'));
+      console.log('DE Stimmen:', deVoices.map(v=>v.name+'|'+v.lang+'|lokal:'+v.localService).join(', '));
+    }
+
+    // Beste Stimme: lokal bevorzugt, dann remote
+    const v =
+      voices.find(v=>v.localService && /siri/i.test(v.name) && v.lang.startsWith('de')) ||
+      voices.find(v=>v.localService && /anna/i.test(v.name)) ||
+      voices.find(v=>v.localService && v.lang==='de-DE') ||
+      voices.find(v=>v.localService && v.lang==='de-CH') ||
+      voices.find(v=>v.localService && v.lang.startsWith('de')) ||
+      voices.find(v=>v.lang==='de-DE') ||
+      voices.find(v=>v.lang.startsWith('de')) ||
+      null;
+
+    if(v){ u.voice=v; u.lang=v.lang; }
+    else { u.lang='de-DE'; }
+
+    window.speechSynthesis.speak(u);
+  }
+
+  // iOS lädt Stimmen asynchron – mehrfach versuchen
+  let voices = window.speechSynthesis.getVoices();
+  if(voices && voices.length > 0){
+    doSpeak(voices);
+  } else {
+    // Warte bis Stimmen geladen
+    let attempts = 0;
+    const interval = setInterval(()=>{
+      voices = window.speechSynthesis.getVoices();
+      attempts++;
+      if((voices && voices.length > 0) || attempts > 10){
+        clearInterval(interval);
+        doSpeak(voices || []);
+      }
+    }, 200);
+  }
 }
 
 // =================== VORGLÜHÜBUNG ===================
