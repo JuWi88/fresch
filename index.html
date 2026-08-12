@@ -88,6 +88,31 @@ textarea{resize:vertical;min-height:70px}
 /* Merk cat header */
 .merk-cat-header{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 4px}
 </style>
+<script type="module">
+// Firebase Setup
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAnZMez8y1-QNCbMdqwwpym64XxvadYTiU",
+  authDomain: "fresch-b876c.firebaseapp.com",
+  projectId: "fresch-b876c",
+  storageBucket: "fresch-b876c.firebasestorage.app",
+  messagingSenderId: "184353872944",
+  appId: "1:184353872944:web:0632ac44e520b763e5e1f5"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window._db = db;
+window._fbReady = true;
+window._setDoc = setDoc;
+window._doc = doc;
+window._getDoc = getDoc;
+window._collection = collection;
+window._getDocs = getDocs;
+window._deleteDoc = deleteDoc;
+</script>
 </head>
 <body>
 
@@ -541,16 +566,48 @@ function getMerkStatus(merkPos){
   return{total,done,curKl:Math.min(curKl,4)};
 }
 
-// =================== STORAGE ===================
+// =================== STORAGE (Firebase + localStorage fallback) ===================
 const DB='fresch_v6_';
-async function dbGet(k){
-  try{const r=await window.storage.get(DB+k);return r?JSON.parse(r.value):null;}
-  catch(e){try{const v=localStorage.getItem(DB+k);return v?JSON.parse(v):null;}catch(_){return null;}}
+
+async function waitForFb(ms=3000){
+  const start=Date.now();
+  while(!window._fbReady&&Date.now()-start<ms) await new Promise(r=>setTimeout(r,100));
+  return window._fbReady;
 }
+
+async function dbGet(k){
+  // Try Firebase first
+  try{
+    if(await waitForFb()){
+      const ref=window._doc(window._db,'fresch',k);
+      const snap=await window._getDoc(ref);
+      if(snap.exists()) return snap.data().value;
+    }
+  }catch(e){}
+  // Fallback: localStorage
+  try{const v=localStorage.getItem(DB+k);return v?JSON.parse(v):null;}catch(_){return null;}
+}
+
 async function dbSet(k,v){
-  const s=JSON.stringify(v);
-  try{await window.storage.set(DB+k,s);}catch(e){}
-  try{localStorage.setItem(DB+k,s);}catch(_){}
+  // Save to Firebase
+  try{
+    if(await waitForFb()){
+      const ref=window._doc(window._db,'fresch',k);
+      await window._setDoc(ref,{value:v});
+    }
+  }catch(e){}
+  // Also save to localStorage as backup
+  try{localStorage.setItem(DB+k,JSON.stringify(v));}catch(_){}
+}
+
+async function dbDelete(k){
+  try{
+    if(await waitForFb()){
+      const ref=window._doc(window._db,'fresch',k);
+      await window._deleteDoc(ref);
+    }
+  }catch(e){}
+  try{localStorage.removeItem(DB+k);}catch(_){}
 }
 
 // =================== STATE ===================
@@ -1053,8 +1110,7 @@ async function deleteKind(){
   const name=kinder.find(k=>k.id===adminId)?.name;
   if(!confirm(`Kind "${name}" wirklich löschen?\n\nAlle Daten werden dauerhaft entfernt.`))return;
   kinder=kinder.filter(k=>k.id!==adminId);await dbSet('kinder',kinder);
-  try{await window.storage.delete(DB+'k_'+adminId);}catch(e){}
-  try{localStorage.removeItem(DB+'k_'+adminId);}catch(_){}
+  await dbDelete('k_'+adminId);
   renderAdminList();renderLoginSelect();showScreen('s-admin');
 }
 
