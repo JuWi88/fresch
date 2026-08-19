@@ -399,6 +399,17 @@ textarea{resize:vertical;min-height:70px}
     <span class="section-label">WOCHENSATZ – WÖRTER FÜR DIESES KIND</span>
     <p class="muted" style="margin-bottom:8px;font-size:12px">Tippe an, welche Wörter dieses Kind diese Woche schreiben muss:</p>
     <div id="kindSatzChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;padding:10px;background:var(--bg);border-radius:10px;min-height:44px"></div>
+    <span class="section-label">MERKWÖRTER STARTKLASSE</span>
+    <select id="kindStartKlasse" style="margin-bottom:12px">
+      <option value="2">Klasse 2 (Grundwortschatz)</option>
+      <option value="3">Klasse 3 (erweitert)</option>
+      <option value="4">Klasse 4 (anspruchsvoll)</option>
+    </select>
+    <span class="section-label">WOCHENSATZ NIVEAU</span>
+    <select id="kindNiveau" style="margin-bottom:12px">
+      <option value="A">Niveau A (einfacher)</option>
+      <option value="B">Niveau B (anspruchsvoller)</option>
+    </select>
     <span class="section-label">VORGLÜHÜBUNG SCHWIERIGKEIT</span>
     <select id="kindSnakeLevel" style="margin-bottom:12px">
       <option value="1">Stufe 1 – einfach</option>
@@ -451,7 +462,12 @@ textarea{resize:vertical;min-height:70px}
     <p class="muted" style="margin-bottom:8px">Markiere Lückenwörter mit *Sternchen*: z.B. «Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*.»</p>
     <span class="section-label">WOCHE</span>
     <input type="text" id="newSatzWoche" placeholder="z.B. 1" style="margin-bottom:10px;width:80px">
-    <span class="section-label" style="margin-top:6px">SATZ (Lückenwörter mit *Sternchen*)</span>
+    <span class="section-label" style="margin-top:6px">NIVEAU</span>
+    <select id="newSatzNiveau" style="margin-bottom:10px">
+      <option value="A">Niveau A (einfacher)</option>
+      <option value="B">Niveau B (anspruchsvoller)</option>
+    </select>
+    <span class="section-label">SATZ (Lückenwörter mit *Sternchen*)</span>
     <textarea id="newSatzText" placeholder="Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*." style="margin-bottom:10px"></textarea>
     <button class="btn purple" onclick="addSatz()">+ Satz hinzufügen</button>
   </div>
@@ -500,22 +516,32 @@ const SNAKE_WORDS={
 // Vorgeladene Wochensätze – alle mit *Lückenwörtern* markiert
 // Niveau A: 1 Lücke (erstes *Wort*), Niveau B: alle bis auf Füllwörter, Niveau C: alles
 const DEFAULT_SAETZE=[
-  {id:'w1',woche:1,text:"Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*."},
-  {id:'w2',woche:2,text:"Die *Lehrerin* zählt die *Zähne* des *Hundes*."},
-  {id:'w3',woche:3,text:"Wir *nehmen* das *Mehl* und *backen* zusammen."},
-  {id:'w4',woche:4,text:"Der *Schnee* fällt, und die *Vögel* singen *laut*."},
-  {id:'w5',woche:5,text:"Im *Sommer* fahren wir oft mit dem *Fahrrad* zur *Schule*."},
-  {id:'w6',woche:6,text:"Der *Zahnarzt* wohnt ungefähr zehn *Kilometer* von hier."},
-  {id:'w7',woche:7,text:"Die *Kinder* gehen durch den *Wald* und *sehen* viele *Tiere*."},
-  {id:'w8',woche:8,text:"*Trotzdem* haben wir uns gut *verstanden* und viel *gelacht*."},
-  {id:'w9',woche:9,text:"Während der *Ferien* vergessen wir *trotzdem* nicht das *Lesen*."},
+  {id:'w1a',woche:1,niveau:'A',text:"Der *Vater* fährt *Fahrrad*."},
+  {id:'w1b',woche:1,niveau:'B',text:"Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*."},
+  {id:'w2a',woche:2,niveau:'A',text:"Die *Lehrerin* liest ein *Buch*."},
+  {id:'w2b',woche:2,niveau:'B',text:"Die *Lehrerin* zählt die *Zähne* des *Hundes*."},
+  {id:'w3a',woche:3,niveau:'A',text:"Wir *backen* mit *Mehl*."},
+  {id:'w3b',woche:3,niveau:'B',text:"Wir *nehmen* das *Mehl* und *backen* zusammen."},
+  {id:'w4a',woche:4,niveau:'A',text:"Der *Schnee* ist *weiss*."},
+  {id:'w4b',woche:4,niveau:'B',text:"Der *Schnee* fällt, und die *Vögel* singen *laut*."},
+  {id:'w5a',woche:5,niveau:'A',text:"Wir *fahren* zur *Schule*."},
+  {id:'w5b',woche:5,niveau:'B',text:"Im *Sommer* fahren wir oft mit dem *Fahrrad* zur *Schule*."},
+  {id:'w6a',woche:6,niveau:'A',text:"Der *Zahnarzt* hilft den *Zähnen*."},
+  {id:'w6b',woche:6,niveau:'B',text:"Der *Zahnarzt* wohnt ungefähr zehn *Kilometer* von hier."},
+  {id:'w7a',woche:7,niveau:'A',text:"Die *Kinder* gehen in den *Wald*."},
+  {id:'w7b',woche:7,niveau:'B',text:"Die *Kinder* gehen durch den *Wald* und *sehen* viele *Tiere*."},
+  {id:'w8a',woche:8,niveau:'A',text:"Wir haben uns gut *verstanden*."},
+  {id:'w8b',woche:8,niveau:'B',text:"*Trotzdem* haben wir uns gut *verstanden* und viel *gelacht*."},
+  {id:'w9a',woche:9,niveau:'A',text:"In den *Ferien* lesen wir gern."},
+  {id:'w9b',woche:9,niveau:'B',text:"Während der *Ferien* vergessen wir *trotzdem* nicht das *Lesen*."},
 ];
 
 // =================== MERKWÖRTER LOGIK ===================
-function getMerkSelection(merkPos){
+function getMerkSelection(merkPos,startKlasse=2){
   if(!merkPos)merkPos={};
   const result=[];
-  outer:for(const kl of[2,3,4]){
+  const klassen=[2,3,4].filter(k=>k>=startKlasse);
+  outer:for(const kl of klassen){
     for(const kat of Object.keys(MERKWOERTER[kl])){
       if(result.length>=5)break outer;
       const key=`${kl}_${kat}`;
@@ -527,10 +553,11 @@ function getMerkSelection(merkPos){
   return result;
 }
 
-function getMerkStatus(merkPos){
+function getMerkStatus(merkPos,startKlasse=2){
   if(!merkPos)merkPos={};
-  let total=0,done=0,curKl=2;
-  for(const kl of[2,3,4]){
+  let total=0,done=0,curKl=startKlasse;
+  const klassen=[2,3,4].filter(k=>k>=startKlasse);
+  for(const kl of klassen){
     let klDone=true;
     for(const kat of Object.keys(MERKWOERTER[kl])){
       const key=`${kl}_${kat}`;const n=MERKWOERTER[kl][kat].words.length;
@@ -614,7 +641,7 @@ function ensureActive(addNew=false){
   // Max 5 aktive Merkwörter (noch nicht in Ich-kann)
   const current=curData.activeWords.filter(e=>!e.isCustom);
   if(current.length<5||(addNew&&current.length<6)){
-    const sel=getMerkSelection(curData.merkPos);
+    const sel=getMerkSelection(curData.merkPos,curData.startKlasse||2);
     sel.forEach(item=>{
       if(curData.activeWords.length>=6)return;
       if(!curData.activeWords.some(e=>e.word===item.word))
@@ -631,10 +658,10 @@ function renderHome(){
   document.getElementById('homeName').textContent=curKind.name;
   document.getElementById('homeAvatar').textContent=curKind.name[0].toUpperCase();
   document.getElementById('homeWeek').textContent='KW '+getKW();
-  const st=getMerkStatus(curData.merkPos);
+  const st=getMerkStatus(curData.merkPos,curData.startKlasse||2);
   document.getElementById('homeStats').textContent=curData.ichKann.length+' gelernt · '+st.done+'/'+st.total;
   document.getElementById('homeStrategie').textContent='';
-  document.getElementById('homeNiveau').textContent='';
+  const niv2=curData.niveau||'A';document.getElementById('homeNiveau').textContent='Niveau '+niv2;
   document.getElementById('homeMerkInfo').textContent='Merkwörterliste Klasse '+st.curKl;
   const dayDots=document.getElementById('homeDayDots');dayDots.innerHTML='';
   const day=getDayOfWeek();const wk=getWeekKey();const hist=curData.wochensatzHistory||{};
@@ -763,8 +790,12 @@ function getLueckenForNiveau(tokens,niveau){
 
 function getCurrentSatz(){
   if(!allSaetze.length)return null;
+  const niv=curData.niveau||'A';
   const kw=getKW();
-  return allSaetze[(kw-1)%allSaetze.length]||allSaetze[0];
+  // Filter by niveau, fallback to any
+  const nivSaetze=allSaetze.filter(s=>s.niveau===niv);
+  const pool=nivSaetze.length?nivSaetze:allSaetze;
+  return pool[(kw-1)%pool.length]||pool[0];
 }
 
 function startWochensatz(){
@@ -923,18 +954,23 @@ function markResult(ok){
   if(ok){
     if(entry)entry.correct=(entry.correct||0)+1;
     const c=entry?.correct||1;
-    if(c>=3){
+    const hadError=entry?.hadError||false;
+    const needed=hadError?3:1;// 1x richtig reicht, ausser nach Fehler (dann 3x)
+    if(c>=needed){
       curData.ichKann.push({word,date:new Date().toISOString()});
       curData.activeWords=curData.activeWords.filter(e=>e.word!==word);
       const mk=trainMerkKeys[trainIdx];
       if(mk)curData.merkPos[mk]=(curData.merkPos[mk]||0)+1;
-      ensureActive(true);setResult('⭐','Ich-kann-Wort!',`"${word}" kommt in die Ich-kann-Kartei!`);
+      ensureActive(true);
+      setResult('⭐','Ich-kann-Wort!',`"${word}" kommt in die Ich-kann-Kartei!`);
     }else{
-      ensureActive(true);// 1x richtig → neues Wort rückt nach
-      setResult('✅','Richtig!',`${c}/3 – weiter so! Neues Wort kommt dazu.`);
+      ensureActive(true);
+      setResult('✅','Richtig!',hadError?`${c}/3 – weiter so!`:`Richtig! ⭐ kommt gleich...`);
     }
     dbSet('k_'+curKind.id,curData);showPhase('result');
   }else{
+    // Fehler: hadError setzen, correct auf 0
+    if(entry){entry.hadError=true;entry.correct=0;}
     redoLeft=3;document.getElementById('redoWord').textContent=word;document.getElementById('redoCount').textContent=redoLeft;showPhase('redo');
   }
 }
@@ -996,7 +1032,15 @@ function markWeekResult(ok){
   weekResults[weekIdx]=ok;
   if(ok){
     const e=curData.activeWords.find(x=>x.word===weekWords[weekIdx]);
-    if(e){e.correct=(e.correct||0)+1;if(e.correct>=3){curData.ichKann.push({word:e.word,date:new Date().toISOString()});const mk=weekMerkKeys[weekIdx];if(mk)curData.merkPos[mk]=(curData.merkPos[mk]||0)+1;curData.activeWords=curData.activeWords.filter(x=>x.word!==e.word);ensureActive();}}
+    if(e){
+      e.correct=(e.correct||0)+1;
+      const needed=e.hadError?3:1;
+      if(e.correct>=needed){
+        curData.ichKann.push({word:e.word,date:new Date().toISOString()});
+        const mk=weekMerkKeys[weekIdx];if(mk)curData.merkPos[mk]=(curData.merkPos[mk]||0)+1;
+        curData.activeWords=curData.activeWords.filter(x=>x.word!==e.word);ensureActive();
+      }
+    }
   }
   dbSet('k_'+curKind.id,curData);
   if(weekIdx<weekWords.length-1){weekIdx++;updateWkCtr();document.getElementById('wkCheckBox').style.display='none';speakWeekWord();}
@@ -1040,7 +1084,9 @@ async function openKindAdmin(id){
   adminData=await dbGet('k_'+id)||mkData();
   if(!adminData.merkPos)adminData.merkPos={};
   document.getElementById('kindSnakeLevel').value=adminData.snakeLevel||1;
-  const st=getMerkStatus(adminData.merkPos);
+  document.getElementById('kindStartKlasse').value=adminData.startKlasse||2;
+  document.getElementById('kindNiveau').value=adminData.niveau||'A';
+  const st=getMerkStatus(adminData.merkPos,adminData.startKlasse||2);
   document.getElementById('adminMerkStatus').innerHTML=`<b>Aktuelle Klasse: Klasse ${st.curKl}</b><br>Fortschritt: ${st.done} von ${st.total} Wörtern gelernt`;
   document.getElementById('merkEditSection').style.display='none';
   document.getElementById('merkEditBtn').textContent='✏️ Bearbeiten';
@@ -1051,6 +1097,8 @@ async function openKindAdmin(id){
 
 async function saveSettings(){
   adminData.snakeLevel=parseInt(document.getElementById('kindSnakeLevel').value);
+  adminData.startKlasse=parseInt(document.getElementById('kindStartKlasse').value);
+  adminData.niveau=document.getElementById('kindNiveau').value;
   // satzWoerter wird live durch Chips aktualisiert
   await dbSet('k_'+adminId,adminData);alert('✓ Gespeichert!');
 }
@@ -1103,7 +1151,7 @@ async function deleteMerkWord(kl,kat,idx){
   const key=`${kl}_${kat}`;
   if((adminData.merkPos[key]||0)>idx)adminData.merkPos[key]=Math.max(0,(adminData.merkPos[key]||1)-1);
   await dbSet('k_'+adminId,adminData);renderMerkEdit();
-  const st=getMerkStatus(adminData.merkPos);
+  const st=getMerkStatus(adminData.merkPos,adminData.startKlasse||2);
   document.getElementById('adminMerkStatus').innerHTML=`<b>Aktuelle Klasse: Klasse ${st.curKl}</b><br>Fortschritt: ${st.done} von ${st.total} Wörtern gelernt`;
 }
 
@@ -1164,9 +1212,7 @@ function renderSaetze(){
         <button onclick="deleteSatz('${s.id}')" style="background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:0 4px;flex-shrink:0">✕</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <span class="tag grey" style="font-size:11px">A: ${getNiveauPreview(s.text,'A')}</span>
-        <span class="tag purple" style="font-size:11px">B: alle Lücken</span>
-        <span class="tag orange" style="font-size:11px">C: ganzer Satz</span>
+
       </div>`;
     el.appendChild(card);
   });
@@ -1179,14 +1225,82 @@ function getNiveauPreview(text,niv){
 }
 
 async function addSatz(){
-  const text=document.getElementById('newSatzText').value.trim();const woche=document.getElementById('newSatzWoche').value.trim();
+  const text=document.getElementById('newSatzText').value.trim();
+  const woche=document.getElementById('newSatzWoche').value.trim();
+  const niveau=document.getElementById('newSatzNiveau').value||'A';
   if(!text){alert('Bitte einen Satz eingeben.');return;}
-  allSaetze.push({id:'ws_'+Date.now(),woche:parseInt(woche)||allSaetze.length+1,text});
-  await dbSet('saetze',allSaetze);document.getElementById('newSatzText').value='';document.getElementById('newSatzWoche').value='';renderSaetze();
+  allSaetze.push({id:'ws_'+Date.now(),woche:parseInt(woche)||1,niveau,text});
+  await dbSet('saetze',allSaetze);
+  document.getElementById('newSatzText').value='';
+  document.getElementById('newSatzWoche').value='';
+  renderSaetze();
 }
 
 async function deleteSatz(id){
   if(!confirm('Satz löschen?'))return;allSaetze=allSaetze.filter(s=>s.id!==id);await dbSet('saetze',allSaetze);renderSaetze();
+}
+
+// =================== EXPORT / IMPORT ===================
+async function exportData(){
+  // Sammle alle Kinder-Daten
+  const kindDaten={};
+  for(const k of kinder){
+    const d=await dbGet('k_'+k.id)||{};
+    kindDaten[k.id]=d;
+  }
+  const payload={
+    version:1,
+    exportDatum:new Date().toISOString(),
+    kinder,
+    kindDaten,
+    saetze:allSaetze
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='fresch-einstellungen.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importData(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  const text=await file.text();
+  let payload;
+  try{payload=JSON.parse(text);}catch(e){alert('Ungültige Datei.');return;}
+  if(!payload.kinder||!payload.kindDaten){alert('Ungültiges Format.');return;}
+  // Fortschritt der Kinder NICHT überschreiben – nur Einstellungen
+  const existing={};
+  for(const k of kinder){
+    const d=await dbGet('k_'+k.id)||{};
+    existing[k.id]=d;
+  }
+  // Neue Kinder und Einstellungen importieren
+  kinder=payload.kinder;
+  await dbSet('kinder',kinder);
+  for(const k of kinder){
+    const imported=payload.kindDaten[k.id]||{};
+    const current=existing[k.id]||{};
+    // Behalte Fortschritt, übernehme Einstellungen
+    const merged={
+      ...imported,// Einstellungen aus Import
+      activeWords:current.activeWords||imported.activeWords||[],
+      ichKann:current.ichKann||imported.ichKann||[],
+      merkPos:current.merkPos||imported.merkPos||{},
+      sessions:current.sessions||imported.sessions||[],
+      wochensatzHistory:current.wochensatzHistory||imported.wochensatzHistory||{},
+    };
+    await dbSet('k_'+k.id,merged);
+  }
+  if(payload.saetze){
+    allSaetze=payload.saetze;
+    await dbSet('saetze',allSaetze);
+  }
+  renderAdminList();renderLoginSelect();
+  alert('✓ Import erfolgreich! Kinder und Einstellungen wurden übernommen.');
+  event.target.value='';
 }
 
 init();
