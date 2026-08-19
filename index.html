@@ -335,43 +335,10 @@ textarea{resize:vertical;min-height:70px}
       <h3 style="margin-bottom:10px">🎯 Strategie-Auswertung</h3>
       <div id="wkStrategieStats"></div>
     </div>
-    <div class="card" style="text-align:center;padding:1.5rem">
-      <div style="font-size:40px;margin-bottom:10px">📋</div>
-      <h3 style="margin-bottom:6px">Wochendiktat</h3>
-      <p class="muted" style="margin-bottom:16px">Alle Lernwörter nochmals diktieren</p>
-      <button class="btn primary" onclick="startWeekReview()">Wochendiktat starten</button>
-    </div>
+
     <div class="card"><h3 style="margin-bottom:10px">⭐ Ich-kann-Kartei</h3><div id="ikMain" style="display:flex;flex-wrap:wrap;gap:6px"></div></div>
   </div>
-  <div id="wk-review" style="display:none;flex-direction:column;gap:.75rem">
-    <div class="card" style="text-align:center;padding:1.5rem">
-      <p class="muted" style="margin-bottom:4px">Wort <span id="wkCtr">1</span> von <span id="wkTotal">5</span></p>
-      <button class="speak-pill" onclick="speakWeekWord()" style="margin:12px auto;display:inline-flex">🔊 Wort hören</button>
-    </div>
-    <button class="btn primary" onclick="checkWeekWord()">Lösung zeigen →</button>
-    <div id="wkCheckBox" style="display:none" class="card">
-      <div style="text-align:center;margin-bottom:12px">
-        <p class="section-label" style="color:var(--blue)">Lösung</p>
-        <div style="font-size:26px;font-weight:700;color:var(--blue)" id="wkSolution"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <button class="btn success" onclick="markWeekResult(true)">✓ Richtig</button>
-        <button class="btn danger" onclick="markWeekResult(false)">✗ Fehler</button>
-      </div>
-    </div>
-  </div>
-  <div id="wk-stats" style="display:none;flex-direction:column;gap:.75rem">
-    <div class="card">
-      <div class="stat-grid">
-        <div class="stat-box"><div class="stat-num" style="color:var(--green)" id="stOk">0</div><div class="stat-label">Richtig</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--red)" id="stErr">0</div><div class="stat-label">Fehler</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--blue)" id="stIk">0</div><div class="stat-label">Ich kann!</div></div>
-      </div>
-      <div id="wkWordResults"></div>
-    </div>
-    <div class="card yellow"><h3 style="margin-bottom:10px">⭐ Ich-kann-Kartei</h3><div id="ikStats" style="display:flex;flex-wrap:wrap;gap:6px"></div></div>
-    <button class="btn primary" onclick="finishWeek()">Neue Woche starten</button>
-  </div>
+
 </div>
 
 <!-- ADMIN -->
@@ -659,16 +626,21 @@ async function doLogin(){
   ensureActive();renderHome();showScreen('s-home');
 }
 
-function ensureActive(addNew=false){
-  // Max 5 aktive Merkwörter (noch nicht in Ich-kann)
-  const current=curData.activeWords.filter(e=>!e.isCustom);
-  if(current.length<5||(addNew&&current.length<6)){
-    const sel=getMerkSelection(curData.merkPos,curData.startKlasse||2);
-    sel.forEach(item=>{
-      if(curData.activeWords.length>=6)return;
-      if(!curData.activeWords.some(e=>e.word===item.word))
-        curData.activeWords.push({word:item.word,correct:0,merkKey:item.key,isCustom:false});
-    });
+function ensureActive(){
+  // Immer mind. 5 aktive Wörter
+  const sel=getMerkSelection(curData.merkPos,curData.startKlasse||2);
+  sel.forEach(item=>{
+    if(curData.activeWords.filter(e=>!e.isCustom).length>=5)return;
+    if(!curData.activeWords.some(e=>e.word===item.word))
+      curData.activeWords.push({word:item.word,correct:0,merkKey:item.key,isCustom:false,hadError:false});
+  });
+  // Eigene Wörter (aus Wochensatz-Fehler oder manuell)
+  while(curData.activeWords.filter(e=>e.isCustom).length<curData.wordQueue.length&&
+        curData.wordQueue.length>0&&
+        curData.activeWords.length<8){
+    const w=curData.wordQueue.find(w=>!curData.activeWords.some(e=>e.word===w));
+    if(!w)break;
+    curData.activeWords.push({word:w,correct:0,isCustom:true,hadError:false});
   }
 }
 
@@ -923,15 +895,15 @@ async function wsSave(){
   // Falsch = Lückenwörter die NICHT angetippt wurden
   const wrong=wsLueckenWords.filter(w=>!wsCorrectWords.has(w));
   let addedWords=[];
-  if(isFriday&&wrong.length>0){
-    wrong.forEach(w=>{
-      const clean=w.replace(/[.,!?;:]/g,'').trim();
-      if(clean&&!curData.activeWords.some(e=>e.word===clean)&&!curData.wordQueue.includes(clean)){
-        curData.wordQueue.push(clean);addedWords.push(clean);
-      }
-    });
-    ensureActive();
-  }
+  // Fehlerwörter aus Wochensatz → immer in Lernliste (nicht nur freitags)
+  wrong.forEach(w=>{
+    const clean=w.replace(/[.,!?;:]/g,'').trim();
+    if(clean&&!curData.activeWords.some(e=>e.word===clean)&&!curData.wordQueue.includes(clean)){
+      curData.wordQueue.push(clean);
+      if(isFriday) addedWords.push(clean);
+    }
+  });
+  ensureActive();
   await dbSet('k_'+curKind.id,curData);
   document.getElementById('ws-check').style.display='none';
   document.getElementById('ws-done').style.display='flex';
@@ -947,8 +919,9 @@ async function wsSave(){
     document.getElementById('wsAddedWords').innerHTML='';
   }else{
     document.getElementById('wsDoneMsg').textContent='Gut geübt! ✓';
-    document.getElementById('wsDoneSub').textContent=wrong.length+' Wörter noch im Fokus – am Freitag wird abgerechnet';
-    document.getElementById('wsAddedWords').innerHTML='';
+    document.getElementById('wsDoneSub').textContent=wrong.length+' Wörter kommen zu deinen Lernwörtern';
+    const el=document.getElementById('wsAddedWords');el.innerHTML='';
+    wrong.forEach(w=>{const t=document.createElement('span');t.className='tag orange';t.textContent='+ '+w;el.appendChild(t);});
   }
 }
 
@@ -991,37 +964,42 @@ function showCheck(){
 
 function markResult(ok){
   trainResults[trainIdx]=ok;
-  const word=trainWords[trainIdx];const entry=curData.activeWords.find(e=>e.word===word);
+  const word=trainWords[trainIdx];
+  const entry=curData.activeWords.find(e=>e.word===word);
   if(ok){
     if(entry)entry.correct=(entry.correct||0)+1;
     const c=entry?.correct||1;
     const hadError=entry?.hadError||false;
-    const needed=hadError?3:1;// 1x richtig reicht, ausser nach Fehler (dann 3x)
+    const needed=hadError?3:1;
     if(c>=needed){
       curData.ichKann.push({word,date:new Date().toISOString()});
       curData.activeWords=curData.activeWords.filter(e=>e.word!==word);
       const mk=trainMerkKeys[trainIdx];
       if(mk)curData.merkPos[mk]=(curData.merkPos[mk]||0)+1;
-      ensureActive(true);
+      ensureActive();
       setResult('⭐','Ich-kann-Wort!',`"${word}" kommt in die Ich-kann-Kartei!`);
     }else{
-      ensureActive(true);
-      setResult('✅','Richtig!',hadError?`${c}/3 – weiter so!`:`Richtig! ⭐ kommt gleich...`);
+      ensureActive();
+      setResult('✅','Richtig!',hadError?`${c}/3 – weiter so!`:'Richtig! Noch 2× – dann Ich-kann! ⭐');
     }
     dbSet('k_'+curKind.id,curData);showPhase('result');
   }else{
-    // Fehler: hadError setzen, correct auf 0
     if(entry){entry.hadError=true;entry.correct=0;}
-    redoLeft=3;document.getElementById('redoWord').textContent=word;document.getElementById('redoCount').textContent=redoLeft;showPhase('redo');
+    redoLeft=3;
+    document.getElementById('redoWord').textContent=word;
+    document.getElementById('redoCount').textContent=redoLeft;
+    showPhase('redo');
   }
 }
 
 function doneRedo(){
   redoLeft--;
-  if(redoLeft>0)document.getElementById('redoCount').textContent=redoLeft;
-  else{
-    const e=curData.activeWords.find(x=>x.word===trainWords[trainIdx]);if(e)e.correct=0;
-    setResult('💪','Gut geübt!',`"${trainWords[trainIdx]}" kommt nächste Einheit nochmals`);
+  if(redoLeft>0){
+    document.getElementById('redoCount').textContent=redoLeft;
+  }else{
+    const e=curData.activeWords.find(x=>x.word===trainWords[trainIdx]);
+    if(e){e.correct=0;e.hadError=true;}
+    setResult('💪','Gut geübt!','Jetzt 3× richtig schreiben → Ich-kann! ⭐');
     dbSet('k_'+curKind.id,curData);showPhase('result');
   }
 }
@@ -1051,8 +1029,6 @@ function showDone(){
 // =================== WOCHENÜBERSICHT ===================
 function showWeekReview(){
   document.getElementById('wk-start').style.display='flex';
-  document.getElementById('wk-review').style.display='none';
-  document.getElementById('wk-stats').style.display='none';
   const el=document.getElementById('ikMain');
   el.innerHTML=curData.ichKann.length?curData.ichKann.map(e=>`<span class="tag green" style="margin-bottom:4px">⭐ ${e.word}</span>`).join(''):'<p class="muted">Noch keine Wörter gelernt</p>';
 
@@ -1109,46 +1085,13 @@ function showWeekReview(){
   showScreen('s-week');
 }
 
-function startWeekReview(){
-  weekWords=curData.activeWords.slice(0,5).map(e=>e.word);weekMerkKeys=curData.activeWords.slice(0,5).map(e=>e.merkKey||null);
-  if(!weekWords.length){alert('Keine aktiven Wörter.');return;}
-  weekIdx=0;weekResults=[];
-  document.getElementById('wkTotal').textContent=weekWords.length;
-  document.getElementById('wk-start').style.display='none';document.getElementById('wk-review').style.display='flex';
-  document.getElementById('wkCheckBox').style.display='none';updateWkCtr();speakWeekWord();
-}
-function speakWeekWord(){speak(weekWords[weekIdx]);}
-function updateWkCtr(){document.getElementById('wkCtr').textContent=weekIdx+1;}
-function checkWeekWord(){document.getElementById('wkSolution').textContent=weekWords[weekIdx];document.getElementById('wkCheckBox').style.display='block';}
-function markWeekResult(ok){
-  weekResults[weekIdx]=ok;
-  if(ok){
-    const e=curData.activeWords.find(x=>x.word===weekWords[weekIdx]);
-    if(e){
-      e.correct=(e.correct||0)+1;
-      const needed=e.hadError?3:1;
-      if(e.correct>=needed){
-        curData.ichKann.push({word:e.word,date:new Date().toISOString()});
-        const mk=weekMerkKeys[weekIdx];if(mk)curData.merkPos[mk]=(curData.merkPos[mk]||0)+1;
-        curData.activeWords=curData.activeWords.filter(x=>x.word!==e.word);ensureActive();
-      }
-    }
-  }
-  dbSet('k_'+curKind.id,curData);
-  if(weekIdx<weekWords.length-1){weekIdx++;updateWkCtr();document.getElementById('wkCheckBox').style.display='none';speakWeekWord();}
-  else showWkStats();
-}
-function showWkStats(){
-  document.getElementById('wk-review').style.display='none';document.getElementById('wk-stats').style.display='flex';
-  document.getElementById('stOk').textContent=weekResults.filter(Boolean).length;
-  document.getElementById('stErr').textContent=weekResults.filter(x=>!x).length;
-  document.getElementById('stIk').textContent=curData.ichKann.length;
-  const el=document.getElementById('wkWordResults');el.innerHTML='';
-  weekWords.forEach((w,i)=>{const d=document.createElement('div');d.className='word-row';d.innerHTML=`<span style="font-weight:600">${w}</span><span class="tag ${weekResults[i]?'green':'red'}">${weekResults[i]?'✓':'✗'}</span>`;el.appendChild(d);});
-  const ik=document.getElementById('ikStats');
-  ik.innerHTML=curData.ichKann.length?curData.ichKann.map(e=>`<span class="tag green" style="margin-bottom:4px">⭐ ${e.word}</span>`).join(''):'<p class="muted">Noch keine</p>';
-}
-function finishWeek(){ensureActive();renderHome();showScreen('s-home');}
+
+
+
+
+
+
+
 
 // =================== ADMIN ===================
 async function showAdminScreen(){kinder=await dbGet('kinder')||[];allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;renderAdminList();showScreen('s-admin');}
