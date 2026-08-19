@@ -134,6 +134,7 @@ textarea{resize:vertical;min-height:70px}
     </div>
     <div class="day-row" id="homeDayDots"></div>
     <div id="homeMerkInfo" class="muted"></div>
+    <div id="homeWeekStats" style="font-size:13px;color:var(--blue);font-weight:500;margin-top:4px"></div>
   </div>
   <button class="btn orange" onclick="startVorgluehung()">🔥 1. Vorglühübung</button>
   <button class="btn purple" onclick="startWochensatz()" style="margin-top:8px">📝 2. Wochensatz</button>
@@ -324,6 +325,16 @@ textarea{resize:vertical;min-height:70px}
     <h2>Wochenübersicht</h2>
   </div>
   <div id="wk-start" style="display:flex;flex-direction:column;gap:.75rem">
+    <!-- Wochenstatistik -->
+    <div class="card blue">
+      <h3 style="margin-bottom:10px;color:var(--blue)">📊 Diese Woche</h3>
+      <div id="wkWeekStats" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <!-- Strategie-Auswertung -->
+    <div class="card" id="wkStrategieCard" style="display:none">
+      <h3 style="margin-bottom:10px">🎯 Strategie-Auswertung</h3>
+      <div id="wkStrategieStats"></div>
+    </div>
     <div class="card" style="text-align:center;padding:1.5rem">
       <div style="font-size:40px;margin-bottom:10px">📋</div>
       <h3 style="margin-bottom:6px">Wochendiktat</h3>
@@ -475,7 +486,11 @@ textarea{resize:vertical;min-height:70px}
       <option value="B">Niveau B (anspruchsvoller)</option>
     </select>
     <span class="section-label">SATZ (Lückenwörter mit *Sternchen*)</span>
-    <textarea id="newSatzText" placeholder="Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*." style="margin-bottom:10px"></textarea>
+    <textarea id="newSatzText" placeholder="Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*." style="margin-bottom:10px" onchange="renderWortStrategien()" oninput="renderWortStrategien()"></textarea>
+    <div id="wortStrategienBox" style="display:none;margin-bottom:10px">
+      <span class="section-label">STRATEGIE PRO LÜCKENWORT</span>
+      <div id="wortStrategienList"></div>
+    </div>
     <button class="btn purple" onclick="addSatz()">+ Satz hinzufügen</button>
   </div>
 </div>
@@ -670,6 +685,13 @@ function renderHome(){
   document.getElementById('homeStrategie').textContent='';
   const niv2=curData.niveau||'A';document.getElementById('homeNiveau').textContent='Niveau '+niv2;
   document.getElementById('homeMerkInfo').textContent='Merkwörterliste Klasse '+st.curKl;
+  // Wochenstatistik
+  const wk2=getWeekKey();
+  const weekSessions=(curData.sessions||[]).filter(s=>s.date&&s.date.startsWith(new Date().toISOString().slice(0,7)));
+  const weekCorrect=weekSessions.reduce((sum,s)=>(s.results||[]).filter(Boolean).length+sum,0);
+  const weekTotal=weekSessions.reduce((sum,s)=>(s.words||[]).length+sum,0);
+  const weekEl=document.getElementById('homeWeekStats');
+  if(weekEl) weekEl.textContent=weekCorrect+' von '+weekTotal+' Wörtern diese Woche richtig';
   const dayDots=document.getElementById('homeDayDots');dayDots.innerHTML='';
   const day=getDayOfWeek();const wk=getWeekKey();const hist=curData.wochensatzHistory||{};
   ['Mo','Di','Mi','Do','Fr'].forEach((d,i)=>{
@@ -885,7 +907,19 @@ async function wsSave(){
   const day=getDayOfWeek();const isFriday=day===5;
   const wk=getWeekKey();
   if(!curData.wochensatzHistory)curData.wochensatzHistory={};
+  if(!curData.strategieStats)curData.strategieStats={};
   curData.wochensatzHistory[wk+'_d'+day]=true;
+  // Strategie-Statistik aktualisieren
+  const satz=wsCurrentSatz;
+  if(satz&&satz.wortStrategien){
+    wsLueckenWords.forEach(w=>{
+      const strat=satz.wortStrategien[w];
+      if(!strat)return;
+      if(!curData.strategieStats[strat])curData.strategieStats[strat]={richtig:0,falsch:0};
+      if(wsCorrectWords.has(w)) curData.strategieStats[strat].richtig++;
+      else curData.strategieStats[strat].falsch++;
+    });
+  }
   // Falsch = Lückenwörter die NICHT angetippt wurden
   const wrong=wsLueckenWords.filter(w=>!wsCorrectWords.has(w));
   let addedWords=[];
@@ -1021,6 +1055,57 @@ function showWeekReview(){
   document.getElementById('wk-stats').style.display='none';
   const el=document.getElementById('ikMain');
   el.innerHTML=curData.ichKann.length?curData.ichKann.map(e=>`<span class="tag green" style="margin-bottom:4px">⭐ ${e.word}</span>`).join(''):'<p class="muted">Noch keine Wörter gelernt</p>';
+
+  // Wochenstatistik
+  const thisMonth=new Date().toISOString().slice(0,7);
+  const allSessions=curData.sessions||[];
+  const weekSessions=allSessions.filter(s=>s.date&&s.date.startsWith(thisMonth));
+  const weekCorrect=weekSessions.reduce((s,x)=>(x.results||[]).filter(Boolean).length+s,0);
+  const weekTotal=weekSessions.reduce((s,x)=>(x.words||[]).length+s,0);
+  const totalCorrect=curData.ichKann.length;
+  const statsEl=document.getElementById('wkWeekStats');
+  statsEl.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:#fff;border-radius:10px;padding:.75rem;text-align:center">
+        <div style="font-size:26px;font-weight:700;color:var(--blue)">${weekCorrect}</div>
+        <div style="font-size:11px;color:var(--muted)">Richtig diese Woche</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:.75rem;text-align:center">
+        <div style="font-size:26px;font-weight:700;color:var(--green)">${totalCorrect}</div>
+        <div style="font-size:11px;color:var(--muted)">Total gelernt ⭐</div>
+      </div>
+    </div>`;
+
+  // Strategie-Auswertung
+  const stats=curData.strategieStats||{};
+  const stratNames={Aa:'Aa – Gross/Klein','SB':'〜 – Silben Schwingen','VL':'↪ – Verlängern','AB':'⚡ – Ableiten','M':'M – Merken'};
+  const stratColors={Aa:'pink',SB:'green',VL:'blue',AB:'yellow',M:'red'};
+  const stratEl=document.getElementById('wkStrategieStats');
+  const card=document.getElementById('wkStrategieCard');
+  const keys=Object.keys(stats);
+  if(keys.length){
+    card.style.display='block';
+    stratEl.innerHTML='';
+    keys.forEach(k=>{
+      const s=stats[k];const total=s.richtig+s.falsch;
+      const pct=total>0?Math.round(s.richtig/total*100):0;
+      const color=stratColors[k]||'blue';
+      const name=stratNames[k]||k;
+      const row=document.createElement('div');
+      row.style.cssText='margin-bottom:10px';
+      row.innerHTML=`
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:14px;font-weight:600">${name}</span>
+          <span class="tag ${pct>=80?'green':pct>=50?'yellow':'red'}" style="font-size:11px">${s.richtig}/${total} richtig</span>
+        </div>
+        <div style="background:#E5E7EB;border-radius:6px;height:8px;overflow:hidden">
+          <div style="background:var(--${pct>=80?'green':pct>=50?'yellow':'red'});height:100%;width:${pct}%;border-radius:6px;transition:width .3s"></div>
+        </div>`;
+      stratEl.appendChild(row);
+    });
+  } else {
+    card.style.display='none';
+  }
   showScreen('s-week');
 }
 
@@ -1231,15 +1316,51 @@ function getNiveauPreview(text,niv){
   return luecken.length+' Lücken';
 }
 
+function renderWortStrategien(){
+  const text=document.getElementById('newSatzText').value;
+  const luecken=[];
+  const re=/\*([^*]+)\*/g;let m;
+  while((m=re.exec(text))!==null) luecken.push(m[1]);
+  const box=document.getElementById('wortStrategienBox');
+  const list=document.getElementById('wortStrategienList');
+  if(!luecken.length){box.style.display='none';return;}
+  box.style.display='block';
+  list.innerHTML='';
+  luecken.forEach(w=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)';
+    row.innerHTML=`
+      <span style="font-weight:600;min-width:100px;font-size:14px">${w}</span>
+      <select id="strat_${w.replace(/[^a-zA-Z]/g,'_')}" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);font-size:14px">
+        <option value="">— Strategie —</option>
+        <option value="Aa">Aa – Gross/Klein</option>
+        <option value="SB">〜 – Silben Schwingen</option>
+        <option value="VL">↪ – Verlängern</option>
+        <option value="AB">⚡ – Ableiten</option>
+        <option value="M">M – Merken</option>
+      </select>`;
+    list.appendChild(row);
+  });
+}
+
 async function addSatz(){
   const text=document.getElementById('newSatzText').value.trim();
   const woche=document.getElementById('newSatzWoche').value.trim();
   const niveau=document.getElementById('newSatzNiveau').value||'A';
   if(!text){alert('Bitte einen Satz eingeben.');return;}
-  allSaetze.push({id:'ws_'+Date.now(),woche:parseInt(woche)||1,niveau,text});
+  // Sammle Strategien pro Wort
+  const wortStrategien={};
+  const re=/\*([^*]+)\*/g;let m;
+  while((m=re.exec(text))!==null){
+    const w=m[1];
+    const sel=document.getElementById('strat_'+w.replace(/[^a-zA-Z]/g,'_'));
+    if(sel&&sel.value) wortStrategien[w]=sel.value;
+  }
+  allSaetze.push({id:'ws_'+Date.now(),woche:parseInt(woche)||1,niveau,text,wortStrategien});
   await dbSet('saetze',allSaetze);
   document.getElementById('newSatzText').value='';
   document.getElementById('newSatzWoche').value='';
+  document.getElementById('wortStrategienBox').style.display='none';
   renderSaetze();
 }
 
