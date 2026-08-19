@@ -382,7 +382,14 @@ textarea{resize:vertical;min-height:70px}
       <h3>Wochensätze</h3>
       <button class="btn purple sm" onclick="showSaetzeAdmin()">Verwalten →</button>
     </div>
-    <p class="muted">Sätze für Niveau A / B / C – alle hören denselben Satz</p>
+    <p class="muted">Sätze für Niveau A / B – alle hören denselben Satz</p>
+  </div>
+  <div class="card" style="margin-top:.75rem">
+    <h3 style="margin-bottom:10px">📤 Einstellungen übertragen</h3>
+    <p class="muted" style="margin-bottom:12px">Exportiere alle Kinder und Einstellungen. Lade die Datei auf Kinder-Geräten wieder ein – der Lernfortschritt bleibt erhalten.</p>
+    <button class="btn primary" onclick="exportData()" style="margin-bottom:8px">⬇ Exportieren (JSON)</button>
+    <button class="btn ghost" onclick="document.getElementById('importFile').click()">⬆ Importieren (JSON)</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
   </div>
 </div>
 
@@ -1300,6 +1307,101 @@ async function importData(event){
   }
   renderAdminList();renderLoginSelect();
   alert('✓ Import erfolgreich! Kinder und Einstellungen wurden übernommen.');
+  event.target.value='';
+}
+
+// =================== EXPORT / IMPORT ===================
+async function exportData(){
+  const kindDaten={};
+  for(const k of kinder){
+    const d=await dbGet('k_'+k.id)||{};
+    kindDaten[k.id]=d;
+  }
+  const payload={version:1,exportDatum:new Date().toISOString(),kinder,kindDaten,saetze:allSaetze};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='fresch-einstellungen.json';a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importData(event){
+  const file=event.target.files[0];if(!file)return;
+  const text=await file.text();
+  let payload;
+  try{payload=JSON.parse(text);}catch(e){alert('Ungültige Datei.');return;}
+  if(!payload.kinder){alert('Ungültiges Format.');return;}
+  // Bestehende Fortschritte merken
+  const existing={};
+  for(const k of kinder){
+    existing[k.id]=await dbGet('k_'+k.id)||{};
+  }
+  kinder=payload.kinder;
+  await dbSet('kinder',kinder);
+  for(const k of kinder){
+    const imported=payload.kindDaten?.[k.id]||{};
+    const current=existing[k.id]||{};
+    // Einstellungen importieren, Fortschritt behalten
+    const merged={
+      ...imported,
+      activeWords:current.activeWords||imported.activeWords||[],
+      ichKann:current.ichKann||imported.ichKann||[],
+      merkPos:current.merkPos||imported.merkPos||{},
+      sessions:current.sessions||[],
+      wochensatzHistory:current.wochensatzHistory||imported.wochensatzHistory||{},
+    };
+    await dbSet('k_'+k.id,merged);
+  }
+  if(payload.saetze){allSaetze=payload.saetze;await dbSet('saetze',allSaetze);}
+  renderAdminList();renderLoginSelect();
+  alert('✓ Import erfolgreich!');
+  event.target.value='';
+}
+
+// =================== EXPORT / IMPORT ===================
+async function exportData(){
+  const kindDaten={};
+  for(const k of kinder){
+    const d=await dbGet('k_'+k.id)||{};
+    kindDaten[k.id]=d;
+  }
+  const payload={version:1,exportDatum:new Date().toISOString(),kinder,kindDaten,saetze:allSaetze};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='fresch-einstellungen.json';a.click();
+  URL.revokeObjectURL(url);
+  alert('✓ Datei wurde heruntergeladen.');
+}
+
+async function importData(event){
+  const file=event.target.files[0];if(!file)return;
+  const text=await file.text();
+  let payload;
+  try{payload=JSON.parse(text);}catch(e){alert('Ungültige Datei.');return;}
+  if(!payload.kinder){alert('Ungültiges Format.');return;}
+  const existing={};
+  for(const k of kinder){
+    existing[k.id]=await dbGet('k_'+k.id)||{};
+  }
+  kinder=payload.kinder;
+  await dbSet('kinder',kinder);
+  for(const k of kinder){
+    const imported=payload.kindDaten?.[k.id]||{};
+    const current=existing[k.id]||{};
+    const merged={
+      ...imported,
+      activeWords:current.activeWords||imported.activeWords||[],
+      ichKann:current.ichKann||imported.ichKann||[],
+      merkPos:current.merkPos||imported.merkPos||{},
+      sessions:current.sessions||[],
+      wochensatzHistory:current.wochensatzHistory||imported.wochensatzHistory||{},
+    };
+    await dbSet('k_'+k.id,merged);
+  }
+  if(payload.saetze){allSaetze=payload.saetze;await dbSet('saetze',allSaetze);}
+  renderAdminList();renderLoginSelect();
+  alert('✓ Import erfolgreich! Einstellungen übernommen.');
   event.target.value='';
 }
 
