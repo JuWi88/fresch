@@ -436,29 +436,46 @@ textarea{resize:vertical;min-height:70px}
 <div id="s-admin-saetze" class="screen">
   <div class="nav-bar">
     <button class="btn icon-btn" onclick="showScreen('s-admin')">←</button>
-    <h2>Wochensätze</h2>
+    <h2>Wochensatz</h2>
   </div>
-  <div class="card blue">
-    <p style="font-size:13px;color:var(--blue)">📌 Alle Kinder hören denselben Satz. Niveau A bekommt 1 Lücke, Niveau B mehrere, Niveau C schreibt alles. Markiere Lückenwörter mit *Sternchen*.</p>
-  </div>
-  <div id="saetzeList" style="display:flex;flex-direction:column;gap:.75rem"></div>
-  <div class="card" style="margin-top:.75rem">
-    <h3 style="margin-bottom:12px">Neuen Satz hinzufügen</h3>
-    <p class="muted" style="margin-bottom:8px">Markiere Lückenwörter mit *Sternchen*: z.B. «Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*.»</p>
-    <span class="section-label">WOCHE</span>
-    <input type="text" id="newSatzWoche" placeholder="z.B. 1" style="margin-bottom:10px;width:80px">
-    <span class="section-label" style="margin-top:6px">NIVEAU</span>
+
+  <!-- AKTUELLER WOCHENSATZ -->
+  <div class="card purple">
+    <h3 style="margin-bottom:4px;color:var(--purple)">📝 Aktueller Wochensatz</h3>
+    <p class="muted" style="margin-bottom:12px">Dieser Satz wird diese Woche allen Kindern diktiert. Lückenwörter mit *Sternchen* markieren.</p>
+    <span class="section-label">NIVEAU</span>
     <select id="newSatzNiveau" style="margin-bottom:10px">
       <option value="A">Niveau A (einfacher)</option>
       <option value="B">Niveau B (anspruchsvoller)</option>
     </select>
-    <span class="section-label">SATZ (Lückenwörter mit *Sternchen*)</span>
-    <textarea id="newSatzText" placeholder="Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*." style="margin-bottom:10px" onchange="renderWortStrategien()" oninput="renderWortStrategien()"></textarea>
-    <div id="wortStrategienBox" style="display:none;margin-bottom:10px">
+    <span class="section-label">SATZ</span>
+    <textarea id="newSatzText" placeholder="Der *Vater* fährt mit dem *Fahrrad* zur *Bahn*." style="margin-bottom:10px;min-height:80px" onchange="renderWortStrategien()" oninput="renderWortStrategien()"></textarea>
+    <div id="wortStrategienBox" style="display:none;margin-bottom:12px">
       <span class="section-label">STRATEGIE PRO LÜCKENWORT</span>
       <div id="wortStrategienList"></div>
     </div>
-    <button class="btn purple" onclick="addSatz()">+ Satz hinzufügen</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn purple" onclick="setAktuellerSatz()" style="flex:1">✓ Als aktuellen Satz setzen</button>
+      <button class="btn ghost sm" onclick="addToArchiv()">+ Archiv</button>
+    </div>
+  </div>
+
+  <!-- AKTUELL AKTIVER SATZ ANZEIGE -->
+  <div class="card" id="aktiverSatzCard" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span class="tag green">✓ Aktiv diese Woche</span>
+      <span id="aktiverSatzNiveau" class="tag purple" style="font-size:11px"></span>
+    </div>
+    <p id="aktiverSatzText" style="font-size:16px;line-height:1.7"></p>
+  </div>
+
+  <!-- ARCHIV -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin:1rem 0 .5rem">
+    <h3 style="font-size:16px">📚 Archiv</h3>
+    <button class="btn ghost sm" onclick="toggleArchiv()" id="archivToggleBtn">Anzeigen</button>
+  </div>
+  <div id="archivSection" style="display:none;flex-direction:column;gap:.75rem">
+    <div id="saetzeList"></div>
   </div>
 </div>
 
@@ -583,6 +600,7 @@ async function dbDelete(k){
 
 // =================== STATE ===================
 let kinder=[],curKind=null,curData=null;
+let aktuellerSatz=null;
 let trainWords=[],trainIdx=0,trainResults=[],trainMerkKeys=[];
 let redoLeft=0;
 let weekWords=[],weekIdx=0,weekResults=[],weekMerkKeys=[];
@@ -596,6 +614,7 @@ function mkData(){return{wordQueue:[],activeWords:[],ichKann:[],sessions:[],stra
 async function init(){
   kinder=await dbGet('kinder')||[];
   allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;
+  aktuellerSatz=await dbGet('aktuellerSatz')||null;
   renderLoginSelect();
   // Stimmen vorladen
   if(window.speechSynthesis){
@@ -790,12 +809,17 @@ function getLueckenForNiveau(tokens,niveau){
 }
 
 function getCurrentSatz(){
-  if(!allSaetze.length)return null;
   const niv=curData.niveau||'A';
-  const kw=getKW();
-  // Filter by niveau, fallback to any
+  // Aktueller Satz hat Priorität
+  if(aktuellerSatz){
+    // Wenn Niveau B und nur A vorhanden -> trotzdem nehmen
+    return aktuellerSatz;
+  }
+  // Fallback: Archiv
+  if(!allSaetze.length)return null;
   const nivSaetze=allSaetze.filter(s=>s.niveau===niv);
   const pool=nivSaetze.length?nivSaetze:allSaetze;
+  const kw=getKW();
   return pool[(kw-1)%pool.length]||pool[0];
 }
 
@@ -1232,7 +1256,71 @@ function renderSatzChipsAdmin(){
 }
 
 // =================== WOCHENSÄTZE ADMIN ===================
-async function showSaetzeAdmin(){allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;renderSaetze();showScreen('s-admin-saetze');}
+async function showSaetzeAdmin(){
+  allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;
+  aktuellerSatz=await dbGet('aktuellerSatz')||null;
+  renderSaetze();
+  renderAktiverSatz();
+  showScreen('s-admin-saetze');
+}
+
+function renderAktiverSatz(){
+  const card=document.getElementById('aktiverSatzCard');
+  if(!card)return;
+  if(aktuellerSatz){
+    card.style.display='block';
+    document.getElementById('aktiverSatzNiveau').textContent='Niveau '+(aktuellerSatz.niveau||'A');
+    const preview=aktuellerSatz.text.replace(/\*([^*]+)\*/g,'<strong style="color:var(--purple)">$1</strong>');
+    document.getElementById('aktiverSatzText').innerHTML=preview;
+    // Pre-fill form
+    document.getElementById('newSatzText').value=aktuellerSatz.text;
+    document.getElementById('newSatzNiveau').value=aktuellerSatz.niveau||'A';
+    renderWortStrategien();
+  } else {
+    card.style.display='none';
+  }
+}
+
+let archivOpen=false;
+function toggleArchiv(){
+  archivOpen=!archivOpen;
+  document.getElementById('archivSection').style.display=archivOpen?'flex':'none';
+  document.getElementById('archivToggleBtn').textContent=archivOpen?'Ausblenden':'Anzeigen';
+}
+
+async function setAktuellerSatz(){
+  const text=document.getElementById('newSatzText').value.trim();
+  const niveau=document.getElementById('newSatzNiveau').value||'A';
+  if(!text){alert('Bitte einen Satz eingeben.');return;}
+  const wortStrategien={};
+  const re=/\*([^*]+)\*/g;let m;
+  while((m=re.exec(text))!==null){
+    const w=m[1];
+    const sel=document.getElementById('strat_'+w.replace(/[^a-zA-Z]/g,'_'));
+    if(sel&&sel.value) wortStrategien[w]=sel.value;
+  }
+  aktuellerSatz={id:'akt_'+Date.now(),woche:getKW(),niveau,text,wortStrategien};
+  await dbSet('aktuellerSatz',aktuellerSatz);
+  renderAktiverSatz();
+  alert('✓ Wochensatz gesetzt! Wird sofort bei allen Kindern angezeigt.');
+}
+
+async function addToArchiv(){
+  const text=document.getElementById('newSatzText').value.trim();
+  const niveau=document.getElementById('newSatzNiveau').value||'A';
+  if(!text){alert('Bitte einen Satz eingeben.');return;}
+  const wortStrategien={};
+  const re=/\*([^*]+)\*/g;let m;
+  while((m=re.exec(text))!==null){
+    const w=m[1];
+    const sel=document.getElementById('strat_'+w.replace(/[^a-zA-Z]/g,'_'));
+    if(sel&&sel.value) wortStrategien[w]=sel.value;
+  }
+  allSaetze.push({id:'ws_'+Date.now(),woche:getKW(),niveau,text,wortStrategien});
+  await dbSet('saetze',allSaetze);
+  renderSaetze();
+  alert('✓ Satz ins Archiv gespeichert.');
+}
 
 function renderSaetze(){
   const el=document.getElementById('saetzeList');el.innerHTML='';
@@ -1286,26 +1374,7 @@ function renderWortStrategien(){
   });
 }
 
-async function addSatz(){
-  const text=document.getElementById('newSatzText').value.trim();
-  const woche=document.getElementById('newSatzWoche').value.trim();
-  const niveau=document.getElementById('newSatzNiveau').value||'A';
-  if(!text){alert('Bitte einen Satz eingeben.');return;}
-  // Sammle Strategien pro Wort
-  const wortStrategien={};
-  const re=/\*([^*]+)\*/g;let m;
-  while((m=re.exec(text))!==null){
-    const w=m[1];
-    const sel=document.getElementById('strat_'+w.replace(/[^a-zA-Z]/g,'_'));
-    if(sel&&sel.value) wortStrategien[w]=sel.value;
-  }
-  allSaetze.push({id:'ws_'+Date.now(),woche:parseInt(woche)||1,niveau,text,wortStrategien});
-  await dbSet('saetze',allSaetze);
-  document.getElementById('newSatzText').value='';
-  document.getElementById('newSatzWoche').value='';
-  document.getElementById('wortStrategienBox').style.display='none';
-  renderSaetze();
-}
+// addSatz replaced by setAktuellerSatz and addToArchiv
 
 async function deleteSatz(id){
   if(!confirm('Satz löschen?'))return;allSaetze=allSaetze.filter(s=>s.id!==id);await dbSet('saetze',allSaetze);renderSaetze();
@@ -1381,7 +1450,7 @@ async function exportData(){
     const d=await dbGet('k_'+k.id)||{};
     kindDaten[k.id]=d;
   }
-  const payload={version:1,exportDatum:new Date().toISOString(),kinder,kindDaten,saetze:allSaetze};
+  const payload={version:1,exportDatum:new Date().toISOString(),kinder,kindDaten,saetze:allSaetze,aktuellerSatz};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1417,6 +1486,7 @@ async function importData(event){
     await dbSet('k_'+k.id,merged);
   }
   if(payload.saetze){allSaetze=payload.saetze;await dbSet('saetze',allSaetze);}
+  if(payload.aktuellerSatz){aktuellerSatz=payload.aktuellerSatz;await dbSet('aktuellerSatz',aktuellerSatz);}
   renderAdminList();renderLoginSelect();
   alert('✓ Import erfolgreich!');
   event.target.value='';
@@ -1429,7 +1499,7 @@ async function exportData(){
     const d=await dbGet('k_'+k.id)||{};
     kindDaten[k.id]=d;
   }
-  const payload={version:1,exportDatum:new Date().toISOString(),kinder,kindDaten,saetze:allSaetze};
+  const payload={version:1,exportDatum:new Date().toISOString(),kinder,kindDaten,saetze:allSaetze,aktuellerSatz};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1464,6 +1534,7 @@ async function importData(event){
     await dbSet('k_'+k.id,merged);
   }
   if(payload.saetze){allSaetze=payload.saetze;await dbSet('saetze',allSaetze);}
+  if(payload.aktuellerSatz){aktuellerSatz=payload.aktuellerSatz;await dbSet('aktuellerSatz',aktuellerSatz);}
   renderAdminList();renderLoginSelect();
   alert('✓ Import erfolgreich! Einstellungen übernommen.');
   event.target.value='';
