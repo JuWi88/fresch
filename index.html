@@ -639,6 +639,7 @@ async function doLogin(){
   const id=document.getElementById('loginSelect').value;
   if(!id){alert('Bitte einen Namen wählen');return;}
   curKind=kinder.find(k=>k.id===id);
+  aktuellerSatz=await dbGet('aktuellerSatz')||null;
   curData=await dbGet('k_'+id)||mkData();
   if(!curData.merkPos)curData.merkPos={};
   if(!curData.wochensatzHistory)curData.wochensatzHistory={};
@@ -1138,6 +1139,7 @@ async function addKind(){
 
 async function openKindAdmin(id){
   adminId=id;merkEditOpen=false;
+  aktuellerSatz=await dbGet('aktuellerSatz')||null;// Immer neu laden
   const k=kinder.find(x=>x.id===id);
   document.getElementById('adminKindTitle').textContent=k.name;
   adminData=await dbGet('k_'+id)||mkData();
@@ -1232,9 +1234,9 @@ function renderSatzChipsAdmin(){
   const el=document.getElementById('kindSatzChips');
   if(!el)return;
   el.innerHTML='';
-  if(!allSaetze.length){el.innerHTML='<p class="muted">Kein Wochensatz vorhanden</p>';return;}
-  const kw=getKW();
-  const satz=allSaetze[(kw-1)%allSaetze.length]||allSaetze[0];
+  // Aktuellen Satz nutzen (Priorität) oder aus Archiv
+  const satz=aktuellerSatz||(allSaetze.length?allSaetze[allSaetze.length-1]:null);
+  if(!satz){el.innerHTML='<p class="muted">Kein Wochensatz gesetzt</p>';return;}
   // ALLE Wörter des Satzes – Satzzeichen entfernen
   const alleWorter=satz.text.replace(/\*/g,'').split(/\s+/).filter(Boolean).map(w=>w.replace(/[.,!?;:]/g,''));
   const selected=new Set(adminData.satzWoerter||alleWorter);// default: alle ausgewählt
