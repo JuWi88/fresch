@@ -410,25 +410,48 @@ textarea{resize:vertical;min-height:70px}
     <button class="btn warn" onclick="resetKind()" style="margin-bottom:8px">🔄 Fortschritt zurücksetzen</button>
     <button class="btn danger" onclick="deleteKind()">🗑 Kind löschen</button>
   </div>
+
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <h3>Merkwörterliste</h3>
-      <button class="btn ghost sm" onclick="toggleMerkEdit()" id="merkEditBtn">✏️ Bearbeiten</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3>Lernwörter auswählen</h3>
+      <span id="activeWordCount" class="tag blue">0 aktiv</span>
     </div>
-    <div id="adminMerkStatus" style="font-size:14px;color:var(--muted);background:var(--bg);padding:10px 14px;border-radius:10px;margin-bottom:8px"></div>
-    <div id="merkEditSection" style="display:none"><div id="merkEditList"></div></div>
-  </div>
-  <div class="card">
-    <h3 style="margin-bottom:10px">Zusätzliche Lernwörter</h3>
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <input type="text" id="newWordInput" placeholder="Wort" onkeydown="if(event.key==='Enter')addWord()">
-      <button class="btn primary sm" onclick="addWord()">+</button>
+    <p class="muted" style="margin-bottom:12px">Tippe Wörter an um sie zu aktivieren (grün = aktiv). Wenn ein Wort gelernt wird, rückt das nächste aus derselben Liste nach.</p>
+    <div style="margin-bottom:4px">
+      <button onclick="toggleWordList('kl2')" class="btn ghost" style="text-align:left;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;width:100%">
+        <span style="font-weight:600">📘 Klasse 2</span>
+        <span id="kl2Count" class="tag blue" style="font-size:11px">0 aktiv</span>
+      </button>
+      <div id="kl2List" style="display:none;padding:4px 0"><div id="kl2Words" style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0"></div></div>
     </div>
-    <div style="display:flex;gap:8px">
-      <input type="text" id="bulkWords" placeholder="weil, auch, dann, ...">
-      <button class="btn ghost sm" onclick="addBulkWords()">Alle +</button>
+    <div style="margin-bottom:4px">
+      <button onclick="toggleWordList('kl3')" class="btn ghost" style="text-align:left;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;width:100%">
+        <span style="font-weight:600">📗 Klasse 3</span>
+        <span id="kl3Count" class="tag blue" style="font-size:11px">0 aktiv</span>
+      </button>
+      <div id="kl3List" style="display:none;padding:4px 0"><div id="kl3Words" style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0"></div></div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;margin-bottom:6px"><span style="font-size:14px;font-weight:600">Zusatzwörter</span><span id="wordCount" class="tag blue"></span></div><div id="adminWordList"></div>
+    <div style="margin-bottom:4px">
+      <button onclick="toggleWordList('kl4')" class="btn ghost" style="text-align:left;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;width:100%">
+        <span style="font-weight:600">📙 Klasse 4</span>
+        <span id="kl4Count" class="tag blue" style="font-size:11px">0 aktiv</span>
+      </button>
+      <div id="kl4List" style="display:none;padding:4px 0"><div id="kl4Words" style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0"></div></div>
+    </div>
+    <div style="margin-bottom:4px">
+      <button onclick="toggleWordList('eigen')" class="btn ghost" style="text-align:left;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;width:100%">
+        <span style="font-weight:600">✏️ Eigene Wörter</span>
+        <span id="eigenCount" class="tag orange" style="font-size:11px">0 aktiv</span>
+      </button>
+      <div id="eigenList" style="display:none;padding:4px 0">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="text" id="newWordInput" placeholder="Wort hinzufügen" onkeydown="if(event.key==='Enter')addEigenWord()">
+          <button class="btn primary sm" onclick="addEigenWord()">+</button>
+        </div>
+        <div id="eigenWords" style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0"></div>
+      </div>
+    </div>
+    <button class="btn primary" onclick="saveWordSelection()" style="margin-top:12px">✓ Auswahl speichern</button>
   </div>
 </div>
 
@@ -647,21 +670,51 @@ async function doLogin(){
 }
 
 function ensureActive(){
-  // Immer mind. 5 aktive Wörter
-  const sel=getMerkSelection(curData.merkPos,curData.startKlasse||2);
-  sel.forEach(item=>{
-    if(curData.activeWords.filter(e=>!e.isCustom).length>=5)return;
-    if(!curData.activeWords.some(e=>e.word===item.word))
-      curData.activeWords.push({word:item.word,correct:0,merkKey:item.key,isCustom:false,hadError:false});
+  // Nachrücken: wenn Wort aus Liste X gelernt, nächstes aus Liste X
+  if(!curData.wordLists)return;
+  const wl=curData.wordLists;
+  const activeWords=curData.activeWords||[];
+
+  // Pro Quelle (kl2/kl3/kl4/eigen): nächstes inaktives Wort aktivieren
+  ['kl2','kl3','kl4'].forEach(src=>{
+    const kl=parseInt(src.replace('kl',''));
+    const listData=wl[src]||{};
+    const allWords=getAllMerkWords?getAllMerkWords(kl):[];
+    // Prüfe ob noch Platz (aktives Wort aus dieser Quelle gelernt?)
+    const activeFromSrc=activeWords.filter(e=>e.source===src);
+    // Finde nächstes nicht-aktives, nicht-gelerntes Wort
+    for(const {word} of allWords){
+      const entry=listData[word]||{};
+      const isActive=activeWords.some(e=>e.word===word);
+      const isIchKann=(curData.ichKann||[]).some(e=>e.word===word);
+      if(entry.active&&!isActive&&!isIchKann){
+        const merkKey=kl+'_'+(Object.keys(MERKWOERTER[kl]||{}).find(k=>(MERKWOERTER[kl][k].words||[]).includes(word))||'');
+        activeWords.push({word,correct:0,hadError:false,merkKey,kl,isCustom:false,source:src});
+        listData[word]={...entry,active:true};
+        break;
+      }
+    }
   });
-  // Eigene Wörter (aus Wochensatz-Fehler oder manuell)
-  while(curData.activeWords.filter(e=>e.isCustom).length<curData.wordQueue.length&&
-        curData.wordQueue.length>0&&
-        curData.activeWords.length<8){
-    const w=curData.wordQueue.find(w=>!curData.activeWords.some(e=>e.word===w));
-    if(!w)break;
-    curData.activeWords.push({word:w,correct:0,isCustom:true,hadError:false});
+
+  // Eigene Wörter
+  const eigenList=wl.eigen||[];
+  for(const item of eigenList){
+    const isActive=activeWords.some(e=>e.word===item.word);
+    const isIchKann=(curData.ichKann||[]).some(e=>e.word===item.word);
+    if(item.active&&!isActive&&!isIchKann){
+      activeWords.push({word:item.word,correct:0,hadError:false,isCustom:true,source:'eigen'});
+      break;
+    }
   }
+
+  // Fehlerwörter aus Wochensatz (wordQueue) hinzufügen
+  (curData.wordQueue||[]).forEach(w=>{
+    if(!activeWords.some(e=>e.word===w)&&!(curData.ichKann||[]).some(e=>e.word===w)){
+      activeWords.push({word:w,correct:0,hadError:true,isCustom:true,source:'eigen'});
+    }
+  });
+
+  curData.activeWords=activeWords;
 }
 
 function getKW(){const d=new Date(),y=d.getFullYear(),j=new Date(y,0,1);return Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
@@ -672,14 +725,14 @@ function renderHome(){
   document.getElementById('homeName').textContent=curKind.name;
   document.getElementById('homeAvatar').textContent=curKind.name[0].toUpperCase();
   document.getElementById('homeWeek').textContent='KW '+getKW();
-  const st=getMerkStatus(curData.merkPos,curData.startKlasse||2);
-  document.getElementById('homeStats').textContent=curData.ichKann.length+' gelernt · '+st.done+'/'+st.total;
+  const totalActive=(curData.activeWords||[]).length;
+  document.getElementById('homeStats').textContent=curData.ichKann.length+' gelernt · '+totalActive+' aktive Wörter';
   document.getElementById('homeStrategie').textContent='';
   const niv2=curData.niveau||'A';document.getElementById('homeNiveau').textContent='Niveau '+niv2;
   document.getElementById('homeMerkInfo').textContent='Merkwörterliste Klasse '+st.curKl;
   // Wochenstatistik
   const wk2=getWeekKey();
-  const weekSessions=(curData.sessions||[]).filter(s=>s.date&&s.date.startsWith(new Date().toISOString().slice(0,7)));
+  const weekSessions=(curData.sessions||[]).filter(s=>s.date&&s.date.startsWith(new Date().toISOString().slice(0,8)));
   const weekCorrect=weekSessions.reduce((sum,s)=>(s.results||[]).filter(Boolean).length+sum,0);
   const weekTotal=weekSessions.reduce((sum,s)=>(s.words||[]).length+sum,0);
   const weekEl=document.getElementById('homeWeekStats');
@@ -1001,6 +1054,11 @@ function markResult(ok){
       curData.activeWords=curData.activeWords.filter(e=>e.word!==word);
       const mk=trainMerkKeys[trainIdx];
       if(mk)curData.merkPos[mk]=(curData.merkPos[mk]||0)+1;
+      // Wort in wordLists als gelernt markieren (nicht mehr active)
+      const src=entry?.source;
+      if(src&&src!=='eigen'&&curData.wordLists&&curData.wordLists[src]){
+        if(curData.wordLists[src][word]) curData.wordLists[src][word].active=false;
+      }
       ensureActive();
       setResult('⭐','Ich-kann-Wort!',`"${word}" kommt in die Ich-kann-Kartei!`);
     }else{
@@ -1151,6 +1209,18 @@ async function openKindAdmin(id){
   document.getElementById('adminMerkStatus').innerHTML=`<b>Aktuelle Klasse: Klasse ${st.curKl}</b><br>Fortschritt: ${st.done} von ${st.total} Wörtern gelernt`;
   document.getElementById('merkEditSection').style.display='none';
   document.getElementById('merkEditBtn').textContent='✏️ Bearbeiten';
+  // Sync wordLists from activeWords if not yet migrated
+  if(!adminData.wordLists){
+    adminData.wordLists={kl2:{},kl3:{},kl4:{},eigen:[]};
+    (adminData.activeWords||[]).forEach(e=>{
+      if(e.isCustom){
+        if(!adminData.wordLists.eigen.some(x=>x.word===e.word))
+          adminData.wordLists.eigen.push({word:e.word,active:true,correct:e.correct||0,hadError:e.hadError||false});
+      } else if(e.kl){
+        adminData.wordLists['kl'+e.kl][e.word]={active:true,correct:e.correct||0,hadError:e.hadError||false};
+      }
+    });
+  }
   renderAdminWords();
   renderSatzChipsAdmin();
   showScreen('s-admin-kind');
