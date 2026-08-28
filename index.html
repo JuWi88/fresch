@@ -1283,18 +1283,132 @@ async function deleteMerkWord(kl,kat,idx){
   // Merkstatus wird nicht mehr separat angezeigt
 }
 
-function renderAdminWords(){
-  const custom=(adminData.wordQueue||[]);const customActive=(adminData.activeWords||[]).filter(e=>e.isCustom).map(e=>e.word);
-  const all=[...new Set([...customActive,...custom])];
-  
-  // adminWordList removed
-  if(!all.length){el.innerHTML='<p class="muted" style="padding:8px 0">Keine Zusatzwörter</p>';return;}
-  all.forEach(w=>{const d=document.createElement('div');d.className='word-row';const esc=w.replace(/'/g,"\\'");d.innerHTML=`<span style="font-weight:600">${w}</span><button onclick="removeWord('${esc}')" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:4px 8px">✕</button>`;el.appendChild(d);});
+function getAllMerkWords(kl){
+  const words=[];
+  Object.entries(MERKWOERTER[kl]||{}).forEach(([katKey,kat])=>{
+    (kat.words||[]).forEach(w=>words.push({word:w,kat:kat.name,kl,katKey}));
+  });
+  return words;
 }
 
-async function addWord(){const inp=document.getElementById('newWordInput');const w=inp.value.trim();if(!w)return;adminData.wordQueue=adminData.wordQueue||[];if(!adminData.wordQueue.includes(w)&&!(adminData.activeWords||[]).some(e=>e.word===w))adminData.wordQueue.push(w);await dbSet('k_'+adminId,adminData);inp.value='';renderAdminWords();}
-async function addBulkWords(){// addBulkWords removed}
-async function removeWord(w){adminData.wordQueue=(adminData.wordQueue||[]).filter(x=>x!==w);adminData.activeWords=(adminData.activeWords||[]).filter(e=>e.word!==w);await dbSet('k_'+adminId,adminData);renderAdminWords();}
+function toggleWordList(id){
+  const el=document.getElementById(id+'List');
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function renderAdminWords(){
+  if(!adminData.wordLists) adminData.wordLists={kl2:{},kl3:{},kl4:{},eigen:[]};
+  const wl=adminData.wordLists;
+  const cnt2=Object.values(wl.kl2||{}).filter(v=>v.active).length;
+  const cnt3=Object.values(wl.kl3||{}).filter(v=>v.active).length;
+  const cnt4=Object.values(wl.kl4||{}).filter(v=>v.active).length;
+  const cntE=(wl.eigen||[]).filter(v=>v.active).length;
+  const total=cnt2+cnt3+cnt4+cntE;
+  const countEl=document.getElementById('activeWordCount');if(countEl)countEl.textContent=total+' aktiv';
+  const e2=document.getElementById('kl2Count');if(e2)e2.textContent=cnt2+' aktiv';
+  const e3=document.getElementById('kl3Count');if(e3)e3.textContent=cnt3+' aktiv';
+  const e4=document.getElementById('kl4Count');if(e4)e4.textContent=cnt4+' aktiv';
+  const eE=document.getElementById('eigenCount');if(eE)eE.textContent=cntE+' aktiv';
+  [2,3,4].forEach(kl=>{
+    const el=document.getElementById('kl'+kl+'Words');if(!el)return;
+    el.innerHTML='';
+    const listData=wl['kl'+kl]||{};
+    const cats={};
+    getAllMerkWords(kl).forEach(({word,kat})=>{if(!cats[kat])cats[kat]=[];cats[kat].push(word);});
+    Object.entries(cats).forEach(([kat,ws])=>{
+      const catDiv=document.createElement('div');
+      catDiv.style.cssText='width:100%;margin-bottom:10px';
+      catDiv.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">${kat}</div>`;
+      const chipsDiv=document.createElement('div');chipsDiv.style.cssText='display:flex;flex-wrap:wrap;gap:6px';
+      ws.forEach(w=>{
+        const entry=listData[w]||{active:false,correct:0};
+        const isIchKann=(adminData.ichKann||[]).some(e=>e.word===w);
+        const chip=document.createElement('span');
+        chip.style.cssText='padding:5px 12px;border-radius:20px;font-size:13px;font-weight:500;transition:all .15s;display:inline-block;';
+        if(isIchKann){
+          chip.style.cssText+='background:#FEF7DC;color:#C8940A;border:1.5px solid #C8940A;cursor:default;';
+          chip.textContent='⭐ '+w;
+        }else if(entry.active){
+          chip.style.cssText+='background:var(--lgreen);color:var(--green);border:1.5px solid var(--green);cursor:pointer;';
+          chip.textContent=w+(entry.correct>0?' ('+entry.correct+'×)':'');
+          chip.onclick=()=>{listData[w]={...entry,active:false};adminData.wordLists['kl'+kl]=listData;renderAdminWords();};
+        }else{
+          chip.style.cssText+='background:var(--bg);color:var(--text);border:1.5px solid var(--border);cursor:pointer;';
+          chip.textContent=w;
+          chip.onclick=()=>{listData[w]={active:true,correct:0,hadError:false,kl,source:'kl'+kl};adminData.wordLists['kl'+kl]=listData;renderAdminWords();};
+        }
+        chipsDiv.appendChild(chip);
+      });
+      catDiv.appendChild(chipsDiv);el.appendChild(catDiv);
+    });
+  });
+  const eigenEl=document.getElementById('eigenWords');if(!eigenEl)return;
+  eigenEl.innerHTML='';
+  (wl.eigen||[]).forEach((item,i)=>{
+    const isIchKann=(adminData.ichKann||[]).some(e=>e.word===item.word);
+    const chip=document.createElement('span');
+    chip.style.cssText='padding:5px 12px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;';
+    const delBtn=document.createElement('span');
+    delBtn.textContent='×';delBtn.style.cssText='color:var(--red);font-size:15px;line-height:1;cursor:pointer;';
+    delBtn.onclick=(e)=>{e.stopPropagation();removeEigenWord(i);};
+    if(isIchKann){
+      chip.style.cssText+='background:#FEF7DC;color:#C8940A;border:1.5px solid #C8940A;cursor:default;';
+      chip.textContent='⭐ '+item.word;
+    }else if(item.active){
+      chip.style.cssText+='background:var(--lorange);color:var(--orange);border:1.5px solid var(--orange);';
+      chip.textContent=item.word+(item.correct>0?' ('+item.correct+'×)':'');
+      chip.onclick=()=>{(wl.eigen||[])[i]={...item,active:false};renderAdminWords();};
+    }else{
+      chip.style.cssText+='background:var(--bg);color:var(--text);border:1.5px solid var(--border);';
+      chip.textContent=item.word;
+      chip.onclick=()=>{(wl.eigen||[])[i]={...item,active:true};renderAdminWords();};
+    }
+    chip.appendChild(delBtn);eigenEl.appendChild(chip);
+  });
+}
+
+function removeEigenWord(i){
+  if(!adminData.wordLists||!adminData.wordLists.eigen)return;
+  adminData.wordLists.eigen.splice(i,1);renderAdminWords();
+}
+
+async function addEigenWord(){
+  const inp=document.getElementById('newWordInput');const w=inp.value.trim();if(!w)return;
+  if(!adminData.wordLists)adminData.wordLists={kl2:{},kl3:{},kl4:{},eigen:[]};
+  if(!adminData.wordLists.eigen)adminData.wordLists.eigen=[];
+  if(!adminData.wordLists.eigen.some(e=>e.word===w))
+    adminData.wordLists.eigen.push({word:w,active:true,correct:0,hadError:false,source:'eigen'});
+  inp.value='';renderAdminWords();
+}
+
+async function saveWordSelection(){
+  if(!adminData.wordLists)adminData.wordLists={kl2:{},kl3:{},kl4:{},eigen:[]};
+  const wl=adminData.wordLists;const newActive=[];
+  [2,3,4].forEach(kl=>{
+    const listData=wl['kl'+kl]||{};
+    getAllMerkWords(kl).forEach(({word})=>{
+      const entry=listData[word]||{};
+      if(entry.active){
+        const merkKey=kl+'_'+(Object.keys(MERKWOERTER[kl]||{}).find(k=>(MERKWOERTER[kl][k].words||[]).includes(word))||'');
+        newActive.push({word,correct:entry.correct||0,hadError:entry.hadError||false,merkKey,kl,isCustom:false,source:'kl'+kl});
+      }
+    });
+  });
+  (wl.eigen||[]).forEach(item=>{
+    if(item.active) newActive.push({word:item.word,correct:item.correct||0,hadError:item.hadError||false,isCustom:true,source:'eigen'});
+  });
+  adminData.activeWords=newActive;
+  await dbSet('k_'+adminId,adminData);
+  alert('✓ Gespeichert! '+newActive.length+' aktive Lernwörter.');
+}
+
+async function addWord(){addEigenWord();}
+async function removeWord(w){
+  if(adminData.wordLists&&adminData.wordLists.eigen)
+    adminData.wordLists.eigen=adminData.wordLists.eigen.filter(e=>e.word!==w);
+  adminData.activeWords=(adminData.activeWords||[]).filter(e=>e.word!==w);
+  await dbSet('k_'+adminId,adminData);renderAdminWords();
+}
 
 // =================== SATZWÖRTER PRO KIND ===================
 function renderSatzChipsAdmin(){
