@@ -1564,116 +1564,14 @@ async function deleteSatz(id){
 }
 
 // =================== EXPORT / IMPORT ===================
-async function exportData(){
-  // Sammle alle Kinder-Daten
-  const kindDaten={};
-  for(const k of kinder){
-    const d=await dbGet('k_'+k.id)||{};
-    kindDaten[k.id]=d;
-  }
-  const payload={
-    version:1,
-    exportDatum:new Date().toISOString(),
-    kinder,
-    kindDaten,
-    saetze:allSaetze
-  };
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download='fresch-einstellungen.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
-async function importData(event){
-  const file=event.target.files[0];
-  if(!file)return;
-  const text=await file.text();
-  let payload;
-  try{payload=JSON.parse(text);}catch(e){alert('Ungültige Datei.');return;}
-  if(!payload.kinder||!payload.kindDaten){alert('Ungültiges Format.');return;}
-  // Fortschritt der Kinder NICHT überschreiben – nur Einstellungen
-  const existing={};
-  for(const k of kinder){
-    const d=await dbGet('k_'+k.id)||{};
-    existing[k.id]=d;
-  }
-  // Neue Kinder und Einstellungen importieren
-  kinder=payload.kinder;
-  await dbSet('kinder',kinder);
-  for(const k of kinder){
-    const imported=payload.kindDaten[k.id]||{};
-    const current=existing[k.id]||{};
-    // Behalte Fortschritt, übernehme Einstellungen
-    const merged={
-      ...imported,// Einstellungen aus Import
-      activeWords:current.activeWords||imported.activeWords||[],
-      ichKann:current.ichKann||imported.ichKann||[],
-      merkPos:current.merkPos||imported.merkPos||{},
-      sessions:current.sessions||imported.sessions||[],
-      wochensatzHistory:current.wochensatzHistory||imported.wochensatzHistory||{},
-    };
-    await dbSet('k_'+k.id,merged);
-  }
-  if(payload.saetze){
-    allSaetze=payload.saetze;
-    await dbSet('saetze',allSaetze);
-  }
-  renderAdminList();renderLoginSelect();
-  alert('✓ Import erfolgreich! Kinder und Einstellungen wurden übernommen.');
-  event.target.value='';
-}
+
+
 
 // =================== EXPORT / IMPORT ===================
-async function exportData(){
-  const kindDaten={};
-  for(const k of kinder){
-    const d=await dbGet('k_'+k.id)||{};
-    kindDaten[k.id]=d;
-  }
-  const payload={version:1,exportDatum:new Date().toISOString(),kinder,kindDaten,saetze:allSaetze,aktuellerSatz};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='fresch-einstellungen.json';a.click();
-  URL.revokeObjectURL(url);
-}
 
-async function importData(event){
-  const file=event.target.files[0];if(!file)return;
-  const text=await file.text();
-  let payload;
-  try{payload=JSON.parse(text);}catch(e){alert('Ungültige Datei.');return;}
-  if(!payload.kinder){alert('Ungültiges Format.');return;}
-  // Bestehende Fortschritte merken
-  const existing={};
-  for(const k of kinder){
-    existing[k.id]=await dbGet('k_'+k.id)||{};
-  }
-  kinder=payload.kinder;
-  await dbSet('kinder',kinder);
-  for(const k of kinder){
-    const imported=payload.kindDaten?.[k.id]||{};
-    const current=existing[k.id]||{};
-    // Einstellungen importieren, Fortschritt behalten
-    const merged={
-      ...imported,
-      activeWords:current.activeWords||imported.activeWords||[],
-      ichKann:current.ichKann||imported.ichKann||[],
-      merkPos:current.merkPos||imported.merkPos||{},
-      sessions:current.sessions||[],
-      wochensatzHistory:current.wochensatzHistory||imported.wochensatzHistory||{},
-    };
-    await dbSet('k_'+k.id,merged);
-  }
-  if(payload.saetze){allSaetze=payload.saetze;await dbSet('saetze',allSaetze);}
-  if(payload.aktuellerSatz){aktuellerSatz=payload.aktuellerSatz;await dbSet('aktuellerSatz',aktuellerSatz);}
-  renderAdminList();renderLoginSelect();
-  alert('✓ Import erfolgreich!');
-  event.target.value='';
-}
+
+
 
 // =================== EXPORT / IMPORT ===================
 async function exportData(){
