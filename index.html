@@ -729,7 +729,7 @@ function renderHome(){
   document.getElementById('homeStats').textContent=curData.ichKann.length+' gelernt · '+totalActive+' aktive Wörter';
   document.getElementById('homeStrategie').textContent='';
   const niv2=curData.niveau||'A';document.getElementById('homeNiveau').textContent='Niveau '+niv2;
-  document.getElementById('homeMerkInfo').textContent='Merkwörterliste Klasse '+st.curKl;
+  document.getElementById('homeMerkInfo').textContent='';
   // Wochenstatistik
   const wk2=getWeekKey();
   const weekSessions=(curData.sessions||[]).filter(s=>s.date&&s.date.startsWith(new Date().toISOString().slice(0,8)));
