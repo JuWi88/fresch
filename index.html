@@ -453,6 +453,13 @@ textarea{resize:vertical;min-height:70px}
     </div>
     <button class="btn primary" onclick="saveWordSelection()" style="margin-top:12px">✓ Auswahl speichern</button>
   </div>
+  <div class="card" style="margin-top:.75rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3>Aktive Lernwörter</h3>
+      <button class="btn ghost sm" onclick="renderActiveSummary()">🔄</button>
+    </div>
+    <div id="activeSummary"><p class="muted">Wird geladen...</p></div>
+  </div>
 </div>
 
 <!-- ADMIN WOCHENSÄTZE -->
@@ -666,7 +673,19 @@ async function doLogin(){
   curData=await dbGet('k_'+id)||mkData();
   if(!curData.merkPos)curData.merkPos={};
   if(!curData.wochensatzHistory)curData.wochensatzHistory={};
+  cleanActiveWords();
   ensureActive();renderHome();showScreen('s-home');
+}
+
+function cleanActiveWords(){
+  if(!curData.wordLists)return;
+  const wl=curData.wordLists;
+  const validWords=new Set();
+  [2,3,4].forEach(kl=>{Object.entries(wl['kl'+kl]||{}).forEach(([w,e])=>{if(e.active)validWords.add(w);});});
+  (wl.eigen||[]).forEach(item=>{if(item.active)validWords.add(item.word);});
+  (curData.wordQueue||[]).forEach(w=>validWords.add(w));
+  (curData.ichKann||[]).forEach(e=>validWords.add(e.word));
+  curData.activeWords=(curData.activeWords||[]).filter(e=>validWords.has(e.word));
 }
 
 function ensureActive(){
@@ -1221,6 +1240,7 @@ async function openKindAdmin(id){
   }
   renderAdminWords();
   renderSatzChipsAdmin();
+  setTimeout(renderActiveSummary,100);
   showScreen('s-admin-kind');
 }
 
@@ -1381,6 +1401,37 @@ async function addEigenWord(){
   inp.value='';renderAdminWords();
 }
 
+function renderActiveSummary(){
+  const el=document.getElementById('activeSummary');if(!el)return;
+  el.innerHTML='';
+  const active=adminData.activeWords||[];
+  const queue=adminData.wordQueue||[];
+  if(!active.length&&!queue.length){el.innerHTML='<p class="muted">Keine aktiven Lernwörter</p>';return;}
+  const addHeader=(txt,color)=>{const d=document.createElement('div');d.innerHTML=`<div style="font-size:11px;font-weight:700;color:${color||'var(--muted)'};text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">${txt}</div>`;el.appendChild(d);};
+  const addRow=(word,badge,badgeColor,removeType)=>{
+    const row=document.createElement('div');row.className='word-row';
+    const esc=word.replace(/'/g,"\'");
+    row.innerHTML=`<span style="font-weight:600;font-size:15px">${word}</span><div style="display:flex;align-items:center;gap:8px"><span class="tag ${badgeColor}" style="font-size:11px">${badge}</span><button onclick="removeActiveWord('${esc}','${removeType}')" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:2px 6px">✕</button></div>`;
+    el.appendChild(row);
+  };
+  const merk=active.filter(e=>!e.isCustom);
+  if(merk.length){addHeader('Merkwörter im Training');merk.forEach(e=>{const p=e.hadError?(e.correct||0)+'/3':(e.correct||0)+'/1';addRow(e.word,p+' ✓',e.hadError?'orange':'blue','merk');});}
+  const eigen=active.filter(e=>e.isCustom&&!(queue||[]).includes(e.word));
+  if(eigen.length){addHeader('Eigene Wörter');eigen.forEach(e=>{const p=e.hadError?(e.correct||0)+'/3':(e.correct||0)+'/1';addRow(e.word,p+' ✓','orange','eigen');});}
+  if(queue.length){
+    addHeader('⚠ Fehlerwörter Wochensatz','var(--red)');
+    const note=document.createElement('p');note.className='muted';note.style.marginBottom='8px';note.textContent='Im Wochensatz falsch geschrieben. ✕ um zu entfernen.';el.appendChild(note);
+    queue.forEach(w=>addRow(w,'Fehler','red','queue'));
+  }
+}
+
+async function removeActiveWord(word,type){
+  if(type==='queue'){adminData.wordQueue=(adminData.wordQueue||[]).filter(w=>w!==word);adminData.activeWords=(adminData.activeWords||[]).filter(e=>e.word!==word);}
+  else if(type==='merk'){adminData.activeWords=(adminData.activeWords||[]).filter(e=>e.word!==word);[2,3,4].forEach(kl=>{const ld=(adminData.wordLists||{})['kl'+kl]||{};if(ld[word])ld[word].active=false;});}
+  else if(type==='eigen'){adminData.activeWords=(adminData.activeWords||[]).filter(e=>e.word!==word);if(adminData.wordLists&&adminData.wordLists.eigen)adminData.wordLists.eigen=adminData.wordLists.eigen.map(e=>e.word===word?{...e,active:false}:e);}
+  await dbSet('k_'+adminId,adminData);renderActiveSummary();
+}
+
 async function saveWordSelection(){
   if(!adminData.wordLists)adminData.wordLists={kl2:{},kl3:{},kl4:{},eigen:[]};
   const wl=adminData.wordLists;const newActive=[];
@@ -1475,17 +1526,19 @@ async function setAktuellerSatz(){
   const text=document.getElementById('newSatzText').value.trim();
   const niveau=document.getElementById('newSatzNiveau').value||'A';
   if(!text){alert('Bitte einen Satz eingeben.');return;}
-  const wortStrategien={};
-  const re=/\*([^*]+)\*/g;let m;
-  while((m=re.exec(text))!==null){
-    const w=m[1];
-    const sel=document.getElementById('strat_'+w.replace(/[^a-zA-Z]/g,'_'));
+  const re2=/\*([^*]+)\*/g;let m2;const wortStrategien={};
+  while((m2=re2.exec(text))!==null){
+    const w=m2[1];const sel=document.getElementById('strat_'+w.replace(/[^a-zA-Z]/g,'_'));
     if(sel&&sel.value) wortStrategien[w]=sel.value;
+  }
+  if(aktuellerSatz&&aktuellerSatz.text&&!allSaetze.some(s=>s.text===aktuellerSatz.text)){
+    allSaetze.push({...aktuellerSatz,id:'arch_'+Date.now()});
+    await dbSet('saetze',allSaetze);
   }
   aktuellerSatz={id:'akt_'+Date.now(),woche:getKW(),niveau,text,wortStrategien};
   await dbSet('aktuellerSatz',aktuellerSatz);
-  renderAktiverSatz();
-  alert('✓ Wochensatz gesetzt! Wird sofort bei allen Kindern angezeigt.');
+  renderAktiverSatz();renderSaetze();
+  alert('✓ Wochensatz gesetzt! Alter Satz ins Archiv verschoben.');
 }
 
 async function addToArchiv(){
