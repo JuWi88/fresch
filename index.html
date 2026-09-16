@@ -453,6 +453,23 @@ textarea{resize:vertical;min-height:70px}
     </div>
     <button class="btn primary" onclick="saveWordSelection()" style="margin-top:12px">✓ Auswahl speichern</button>
   </div>
+  <!-- MERKWÖRTERLISTEN BEARBEITEN -->
+  <div class="card" style="margin-top:.75rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <h3>Merkwörterlisten bearbeiten</h3>
+      <button class="btn ghost sm" onclick="toggleMerkListEdit()" id="merkListBtn">✏️ Öffnen</button>
+    </div>
+    <p class="muted" style="margin-bottom:8px">Wörter die zu einfach sind mit ✕ löschen. Gilt für alle Kinder.</p>
+    <div id="merkListEditor" style="display:none">
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <button onclick="showMerkKlasse(2)" class="btn ghost sm" id="merkBtn2">📘 Klasse 2</button>
+        <button onclick="showMerkKlasse(3)" class="btn ghost sm" id="merkBtn3">📗 Klasse 3</button>
+        <button onclick="showMerkKlasse(4)" class="btn ghost sm" id="merkBtn4">📙 Klasse 4</button>
+      </div>
+      <div id="merkKlasseContent" style="max-height:400px;overflow-y:auto"></div>
+    </div>
+  </div>
+
   <div class="card" style="margin-top:.75rem">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <h3>Aktive Lernwörter</h3>
@@ -645,6 +662,8 @@ async function init(){
   kinder=await dbGet('kinder')||[];
   allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;
   aktuellerSatz=await dbGet('aktuellerSatz')||null;
+  const customMerk=await dbGet('merkwoerter_custom');
+  if(customMerk){[2,3,4].forEach(kl=>{if(customMerk[kl])Object.assign(MERKWOERTER[kl],customMerk[kl]);});}
   renderLoginSelect();
   // Stimmen vorladen
   if(window.speechSynthesis){
@@ -675,6 +694,46 @@ async function doLogin(){
   if(!curData.wochensatzHistory)curData.wochensatzHistory={};
   cleanActiveWords();
   ensureActive();renderHome();showScreen('s-home');
+}
+
+let merkListOpen=false;
+
+function toggleMerkListEdit(){
+  merkListOpen=!merkListOpen;
+  const ed=document.getElementById('merkListEditor');
+  const btn=document.getElementById('merkListBtn');
+  if(ed) ed.style.display=merkListOpen?'block':'none';
+  if(btn) btn.textContent=merkListOpen?'✕ Schliessen':'✏️ Öffnen';
+  if(merkListOpen) showMerkKlasse(2);
+}
+
+function showMerkKlasse(kl){
+  [2,3,4].forEach(k=>{const b=document.getElementById('merkBtn'+k);if(b)b.style.fontWeight=k===kl?'700':'400';});
+  const el=document.getElementById('merkKlasseContent');if(!el)return;
+  el.innerHTML='';
+  Object.entries(MERKWOERTER[kl]||{}).forEach(([katKey,kat])=>{
+    const catDiv=document.createElement('div');catDiv.style.cssText='margin-bottom:12px';
+    catDiv.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:6px 0 4px;border-top:1px solid var(--border)">${kat.name}</div>`;
+    const wordsDiv=document.createElement('div');wordsDiv.style.cssText='display:flex;flex-wrap:wrap;gap:6px';
+    (kat.words||[]).forEach((w,i)=>{
+      const chip=document.createElement('span');
+      chip.style.cssText='display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:16px;font-size:13px;background:var(--bg);border:1px solid var(--border)';
+      const esc=w.replace(/'/g,"\'");
+      chip.innerHTML=`${w} <span onclick="deleteMerkWord(${kl},'${katKey}',${i})" style="color:var(--red);cursor:pointer;font-size:16px;line-height:1;margin-left:2px">×</span>`;
+      wordsDiv.appendChild(chip);
+    });
+    catDiv.appendChild(wordsDiv);el.appendChild(catDiv);
+  });
+}
+
+async function deleteMerkWord(kl,katKey,idx){
+  const word=(MERKWOERTER[kl][katKey].words||[])[idx];
+  if(!word)return;
+  if(!confirm('«'+word+'» aus allen Listen entfernen?'))return;
+  MERKWOERTER[kl][katKey].words.splice(idx,1);
+  await dbSet('merkwoerter_custom',MERKWOERTER);
+  showMerkKlasse(kl);
+  renderAdminWords();
 }
 
 function cleanActiveWords(){
@@ -1294,14 +1353,7 @@ function renderMerkEdit(){
   });
 }
 
-async function deleteMerkWord(kl,kat,idx){
-  if(!confirm(`Wort "${MERKWOERTER[kl][kat].words[idx]}" entfernen?`))return;
-  MERKWOERTER[kl][kat].words.splice(idx,1);
-  const key=`${kl}_${kat}`;
-  if((adminData.merkPos[key]||0)>idx)adminData.merkPos[key]=Math.max(0,(adminData.merkPos[key]||1)-1);
-  await dbSet('k_'+adminId,adminData);renderMerkEdit();
-  // Merkstatus wird nicht mehr separat angezeigt
-}
+
 
 function getAllMerkWords(kl){
   const words=[];
@@ -1628,18 +1680,16 @@ async function deleteSatz(id){
 
 // =================== EXPORT / IMPORT ===================
 async function exportData(){
-  const kindDaten={};
-  for(const k of kinder){
-    const d=await dbGet('k_'+k.id)||{};
-    kindDaten[k.id]=d;
-  }
-  const payload={version:1,exportDatum:new Date().toISOString(),kinder,kindDaten,saetze:allSaetze,aktuellerSatz};
+  const payload={
+    version:2,exportDatum:new Date().toISOString(),
+    aktuellerSatz,saetze:allSaetze,merkwoerter:MERKWOERTER
+  };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download='fresch-einstellungen.json';a.click();
+  a.href=url;a.download='fresch-wochensatz.json';a.click();
   URL.revokeObjectURL(url);
-  alert('✓ Datei wurde heruntergeladen.');
+  alert('✓ Wochensatz exportiert. Lernwortfortschritt der Kinder bleibt unberührt.');
 }
 
 async function importData(event){
@@ -1647,30 +1697,13 @@ async function importData(event){
   const text=await file.text();
   let payload;
   try{payload=JSON.parse(text);}catch(e){alert('Ungültige Datei.');return;}
-  if(!payload.kinder){alert('Ungültiges Format.');return;}
-  const existing={};
-  for(const k of kinder){
-    existing[k.id]=await dbGet('k_'+k.id)||{};
-  }
-  kinder=payload.kinder;
-  await dbSet('kinder',kinder);
-  for(const k of kinder){
-    const imported=payload.kindDaten?.[k.id]||{};
-    const current=existing[k.id]||{};
-    const merged={
-      ...imported,
-      activeWords:current.activeWords||imported.activeWords||[],
-      ichKann:current.ichKann||imported.ichKann||[],
-      merkPos:current.merkPos||imported.merkPos||{},
-      sessions:current.sessions||[],
-      wochensatzHistory:current.wochensatzHistory||imported.wochensatzHistory||{},
-    };
-    await dbSet('k_'+k.id,merged);
-  }
-  if(payload.saetze){allSaetze=payload.saetze;await dbSet('saetze',allSaetze);}
   if(payload.aktuellerSatz){aktuellerSatz=payload.aktuellerSatz;await dbSet('aktuellerSatz',aktuellerSatz);}
-  renderAdminList();renderLoginSelect();
-  alert('✓ Import erfolgreich! Einstellungen übernommen.');
+  if(payload.saetze){allSaetze=payload.saetze;await dbSet('saetze',allSaetze);}
+  if(payload.merkwoerter){
+    [2,3,4].forEach(kl=>{if(payload.merkwoerter[kl])Object.assign(MERKWOERTER[kl],payload.merkwoerter[kl]);});
+    await dbSet('merkwoerter_custom',MERKWOERTER);
+  }
+  alert('✓ Wochensatz importiert! Lernwortfortschritt bleibt erhalten.');
   event.target.value='';
 }
 
