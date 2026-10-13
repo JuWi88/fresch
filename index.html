@@ -1456,32 +1456,51 @@ async function addEigenWord(){
 function renderActiveSummary(){
   const el=document.getElementById('activeSummary');if(!el)return;
   el.innerHTML='';
+
   const active=adminData.activeWords||[];
   const queue=adminData.wordQueue||[];
-  if(!active.length&&!queue.length){el.innerHTML='<p class="muted">Keine aktiven Lernwörter</p>';return;}
-  const addHeader=(txt,color)=>{const d=document.createElement('div');d.innerHTML=`<div style="font-size:11px;font-weight:700;color:${color||'var(--muted)'};text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">${txt}</div>`;el.appendChild(d);};
-  const addRow=(word,badge,badgeColor,removeType)=>{
+
+  // Alle Wörter sammeln (aus activeWords + wordQueue)
+  const allWords=new Map();
+  active.forEach(e=>allWords.set(e.word,{...e}));
+  queue.forEach(w=>{if(!allWords.has(w))allWords.set(w,{word:w,correct:0,hadError:true,source:'queue'});});
+
+  if(!allWords.size){el.innerHTML='<p class="muted">Keine aktiven Lernwörter</p>';return;}
+
+  const hdr=document.createElement('div');
+  hdr.innerHTML='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">'+allWords.size+' Wörter aktiv. ✕ zum Entfernen.</div>';
+  el.appendChild(hdr);
+
+  allWords.forEach((e,word)=>{
     const row=document.createElement('div');row.className='word-row';
-    const esc=word.replace(/'/g,"\'");
-    row.innerHTML=`<span style="font-weight:600;font-size:15px">${word}</span><div style="display:flex;align-items:center;gap:8px"><span class="tag ${badgeColor}" style="font-size:11px">${badge}</span><button onclick="removeActiveWord('${esc}','${removeType}')" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:2px 6px">✕</button></div>`;
+    const isQueue=(queue||[]).includes(word);
+    const needed=e.hadError?3:1;
+    const correct=e.correct||0;
+    let badge,bc;
+    if(isQueue){badge='Fehler WS';bc='red';}
+    else if(e.hadError){badge=correct+'/3 ✓';bc=correct>=3?'green':'orange';}
+    else{badge=correct+'/1 ✓';bc=correct>=1?'green':'blue';}
+    const src=e.source||'';
+    const srcLabel=isQueue?'Wochensatz-Fehler':src.startsWith('kl')?'Kl. '+src.replace('kl',''):src==='eigen'?'Eigenes Wort':'–';
+    const esc=word.replace(/\/g,'\\').replace(/'/g,"\'");
+    row.innerHTML=`<div><span style="font-weight:600;font-size:15px">${word}</span><span style="font-size:11px;color:var(--muted);margin-left:6px">${srcLabel}</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tag ${bc}" style="font-size:11px">${badge}</span><button onclick="removeActiveWordById('${esc}')" style="background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:2px 8px;line-height:1">✕</button></div>`;
     el.appendChild(row);
-  };
-  const merk=active.filter(e=>!e.isCustom);
-  if(merk.length){addHeader('Merkwörter im Training');merk.forEach(e=>{const p=e.hadError?(e.correct||0)+'/3':(e.correct||0)+'/1';addRow(e.word,p+' ✓',e.hadError?'orange':'blue','merk');});}
-  const eigen=active.filter(e=>e.isCustom&&!(queue||[]).includes(e.word));
-  if(eigen.length){addHeader('Eigene Wörter');eigen.forEach(e=>{const p=e.hadError?(e.correct||0)+'/3':(e.correct||0)+'/1';addRow(e.word,p+' ✓','orange','eigen');});}
-  if(queue.length){
-    addHeader('⚠ Fehlerwörter Wochensatz','var(--red)');
-    const note=document.createElement('p');note.className='muted';note.style.marginBottom='8px';note.textContent='Im Wochensatz falsch geschrieben. ✕ um zu entfernen.';el.appendChild(note);
-    queue.forEach(w=>addRow(w,'Fehler','red','queue'));
-  }
+  });
 }
 
-async function removeActiveWord(word,type){
-  if(type==='queue'){adminData.wordQueue=(adminData.wordQueue||[]).filter(w=>w!==word);adminData.activeWords=(adminData.activeWords||[]).filter(e=>e.word!==word);}
-  else if(type==='merk'){adminData.activeWords=(adminData.activeWords||[]).filter(e=>e.word!==word);[2,3,4].forEach(kl=>{const ld=(adminData.wordLists||{})['kl'+kl]||{};if(ld[word])ld[word].active=false;});}
-  else if(type==='eigen'){adminData.activeWords=(adminData.activeWords||[]).filter(e=>e.word!==word);if(adminData.wordLists&&adminData.wordLists.eigen)adminData.wordLists.eigen=adminData.wordLists.eigen.map(e=>e.word===word?{...e,active:false}:e);}
-  await dbSet('k_'+adminId,adminData);renderActiveSummary();
+
+
+async function removeActiveWordById(word){
+  adminData.activeWords=(adminData.activeWords||[]).filter(e=>e.word!==word);
+  adminData.wordQueue=(adminData.wordQueue||[]).filter(w=>w!==word);
+  if(adminData.wordLists){
+    [2,3,4].forEach(kl=>{const ld=(adminData.wordLists['kl'+kl]||{});if(ld[word])ld[word].active=false;});
+    if(adminData.wordLists.eigen)
+      adminData.wordLists.eigen=adminData.wordLists.eigen.map(e=>e.word===word?{...e,active:false}:e);
+  }
+  await dbSet('k_'+adminId,adminData);
+  renderActiveSummary();
+  renderAdminWords();
 }
 
 async function saveWordSelection(){
@@ -1522,19 +1541,25 @@ function renderSatzChipsAdmin(){
   const satz=aktuellerSatz||(allSaetze.length?allSaetze[allSaetze.length-1]:null);
   if(!satz){el.innerHTML='<p class="muted">Kein Wochensatz gesetzt</p>';return;}
   // ALLE Wörter des Satzes – Satzzeichen entfernen
-  const alleWorter=satz.text.replace(/\*/g,'').split(/\s+/).filter(Boolean).map(w=>w.replace(/[.,!?;:]/g,''));
-  const selected=new Set(adminData.satzWoerter||alleWorter);// default: alle ausgewählt
-  el.innerHTML='<p class="muted" style="width:100%;font-size:12px;margin-bottom:6px">Tippe die Wörter an, die das Kind schreiben muss:</p>';
+  const alleWorter=satz.text.replace(/\*/g,'').split(/\s+/).filter(Boolean).map(w=>w.replace(/[.,!?;:]/g,'')).filter(Boolean);
+  // Standard: ALLE Wörter ausgewählt - du klickst weg was das Kind NICHT schreiben muss
+  const stored=adminData.satzWoerter;
+  const selected=new Set(stored!==undefined?stored:alleWorter);
+  el.innerHTML='<p class="muted" style="width:100%;font-size:12px;margin-bottom:6px">Grün = Kind schreibt dieses Wort. Antippen zum Abwählen.</p>';
   alleWorter.forEach(w=>{
     if(!w)return;
     const chip=document.createElement('span');
-    chip.className='satz-chip'+(selected.has(w)?' correct':'');
-    chip.textContent=w;chip.style.fontSize='15px';
+    const updateChip=()=>{
+      const on=selected.has(w);
+      chip.style.cssText='padding:7px 14px;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-block;margin:0;background:'+(on?'var(--lgreen)':'var(--bg)')+';color:'+(on?'var(--green)':'var(--muted)')+';border:1.5px solid '+(on?'var(--green)':'var(--border)');
+    };
+    chip.textContent=w;
+    updateChip();
     chip.onclick=()=>{
-      chip.classList.toggle('correct');
-      if(chip.classList.contains('correct'))selected.add(w);
-      else selected.delete(w);
+      if(selected.has(w))selected.delete(w);
+      else selected.add(w);
       adminData.satzWoerter=Array.from(selected);
+      updateChip();
     };
     el.appendChild(chip);
   });
