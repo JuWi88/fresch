@@ -1255,7 +1255,7 @@ function showWeekReview(){
 
 
 // =================== ADMIN ===================
-async async function showAdminScreen(){kinder=await dbGet('kinder')||[];allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;aktuellerSatz=await dbGet('aktuellerSatz')||null;renderAdminList();showScreen('s-admin');}
+async function showAdminScreen(){kinder=await dbGet('kinder')||[];allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;aktuellerSatz=await dbGet('aktuellerSatz')||null;renderAdminList();showScreen('s-admin');}
 
 function renderAdminList(){
   const el=document.getElementById('adminKindList');el.innerHTML='';
