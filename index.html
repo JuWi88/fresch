@@ -1456,34 +1456,42 @@ async function addEigenWord(){
 function renderActiveSummary(){
   const el=document.getElementById('activeSummary');if(!el)return;
   el.innerHTML='';
-
   const active=adminData.activeWords||[];
   const queue=adminData.wordQueue||[];
-
-  // Alle Wörter sammeln (aus activeWords + wordQueue)
   const allWords=new Map();
-  active.forEach(e=>allWords.set(e.word,{...e}));
+  active.forEach(e=>allWords.set(e.word,Object.assign({},e)));
   queue.forEach(w=>{if(!allWords.has(w))allWords.set(w,{word:w,correct:0,hadError:true,source:'queue'});});
-
   if(!allWords.size){el.innerHTML='<p class="muted">Keine aktiven Lernwörter</p>';return;}
-
   const hdr=document.createElement('div');
-  hdr.innerHTML='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">'+allWords.size+' Wörter aktiv. ✕ zum Entfernen.</div>';
+  hdr.textContent=allWords.size+' Wörter aktiv. ✕ zum Entfernen.';
+  hdr.style.cssText='font-size:12px;color:var(--muted);margin-bottom:10px';
   el.appendChild(hdr);
-
-  allWords.forEach((e,word)=>{
+  allWords.forEach(function(e,word){
     const row=document.createElement('div');row.className='word-row';
-    const isQueue=(queue||[]).includes(word);
-    const needed=e.hadError?3:1;
+    const isQueue=(queue||[]).indexOf(word)>=0;
     const correct=e.correct||0;
     let badge,bc;
     if(isQueue){badge='Fehler WS';bc='red';}
     else if(e.hadError){badge=correct+'/3 ✓';bc=correct>=3?'green':'orange';}
     else{badge=correct+'/1 ✓';bc=correct>=1?'green':'blue';}
     const src=e.source||'';
-    const srcLabel=isQueue?'Wochensatz-Fehler':src.startsWith('kl')?'Kl. '+src.replace('kl',''):src==='eigen'?'Eigenes Wort':'–';
-    const esc=word.replace(/\/g,'\\').replace(/'/g,"\'");
-    row.innerHTML=`<div><span style="font-weight:600;font-size:15px">${word}</span><span style="font-size:11px;color:var(--muted);margin-left:6px">${srcLabel}</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tag ${bc}" style="font-size:11px">${badge}</span><button onclick="removeActiveWordById('${esc}')" style="background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:2px 8px;line-height:1">✕</button></div>`;
+    const srcLabel=isQueue?'Wochensatz-Fehler':src.indexOf('kl')===0?'Kl. '+src.replace('kl',''):src==='eigen'?'Eigenes Wort':'–';
+    const left=document.createElement('div');
+    const nameEl=document.createElement('span');
+    nameEl.textContent=word;nameEl.style.cssText='font-weight:600;font-size:15px';
+    const srcEl=document.createElement('span');
+    srcEl.textContent=srcLabel;srcEl.style.cssText='font-size:11px;color:var(--muted);margin-left:6px';
+    left.appendChild(nameEl);left.appendChild(srcEl);
+    const right=document.createElement('div');
+    right.style.cssText='display:flex;align-items:center;gap:8px';
+    const tag=document.createElement('span');
+    tag.className='tag '+bc;tag.style.fontSize='11px';tag.textContent=badge;
+    const btn=document.createElement('button');
+    btn.textContent='✕';
+    btn.style.cssText='background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:2px 8px;line-height:1';
+    (function(w){btn.onclick=function(){removeActiveWordById(w);};})(word);
+    right.appendChild(tag);right.appendChild(btn);
+    row.appendChild(left);row.appendChild(right);
     el.appendChild(row);
   });
 }
