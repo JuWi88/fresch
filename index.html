@@ -1608,8 +1608,11 @@ function renderSatzChipsAdmin(){
   // ALLE Wörter des Satzes – Satzzeichen entfernen
   const alleWorter=satz.text.replace(/\*/g,'').split(/\s+/).filter(Boolean).map(w=>w.replace(/[.,!?;:]/g,'')).filter(Boolean);
   // Standard: ALLE Wörter ausgewählt - du klickst weg was das Kind NICHT schreiben muss
+  // Prüfen ob gespeicherte Auswahl noch zum aktuellen Satz passt
   const stored=adminData.satzWoerter;
-  const selected=new Set(stored!==undefined?stored:alleWorter);
+  const alleSet=new Set(alleWorter);
+  const storedValid=stored!==undefined&&stored.length>0&&stored.every(function(w){return alleSet.has(w);});
+  const selected=new Set(storedValid?stored:alleWorter);
   el.innerHTML='<p class="muted" style="width:100%;font-size:12px;margin-bottom:6px">Grün = Kind schreibt dieses Wort. Antippen zum Abwählen.</p>';
   alleWorter.forEach(w=>{
     if(!w)return;
