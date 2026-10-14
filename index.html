@@ -473,7 +473,10 @@ textarea{resize:vertical;min-height:70px}
   <div class="card" style="margin-top:.75rem">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <h3>Aktive Lernwörter</h3>
-      <button class="btn ghost sm" onclick="renderActiveSummary()">🔄</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn warn sm" onclick="cleanupAllActiveWords()">🧹 Bereinigen</button>
+        <button class="btn ghost sm" onclick="renderActiveSummary()">🔄</button>
+      </div>
     </div>
     <div id="activeSummary"><p class="muted">Wird geladen...</p></div>
   </div>
@@ -1461,6 +1464,22 @@ function renderActiveSummary(){
   const allWords=new Map();
   active.forEach(e=>allWords.set(e.word,Object.assign({},e)));
   queue.forEach(w=>{if(!allWords.has(w))allWords.set(w,{word:w,correct:0,hadError:true,source:'queue'});});
+  // Scan wordLists for active:true words not yet in the map
+  if(adminData.wordLists){
+    [2,3,4].forEach(function(kl){
+      const ld=adminData.wordLists['kl'+kl]||{};
+      Object.keys(ld).forEach(function(w){
+        if(ld[w].active&&!allWords.has(w)){
+          allWords.set(w,{word:w,correct:ld[w].correct||0,hadError:false,source:'kl'+kl,fromList:true});
+        }
+      });
+    });
+    (adminData.wordLists.eigen||[]).forEach(function(e){
+      if(e.active&&!allWords.has(e.word)){
+        allWords.set(e.word,{word:e.word,correct:e.correct||0,hadError:false,source:'eigen',fromList:true});
+      }
+    });
+  }
   if(!allWords.size){el.innerHTML='<p class="muted">Keine aktiven Lernwörter</p>';return;}
   const hdr=document.createElement('div');
   hdr.textContent=allWords.size+' Wörter aktiv. ✕ zum Entfernen.';
@@ -1509,6 +1528,44 @@ async function removeActiveWordById(word){
   await dbSet('k_'+adminId,adminData);
   renderActiveSummary();
   renderAdminWords();
+}
+
+async function cleanupAllActiveWords(){
+  if(!confirm('Alle Lernwörter dieses Kindes bereinigen?\n\nDies entfernt alle Wörter aus dem Training die nicht mehr aktiv in den Wortlisten sind.'))return;
+  // Collect all words that are truly active somewhere
+  const keep=new Set();
+  if(adminData.wordLists){
+    [2,3,4].forEach(function(kl){
+      const ld=adminData.wordLists['kl'+kl]||{};
+      Object.keys(ld).forEach(function(w){if(ld[w].active)keep.add(w);});
+    });
+    (adminData.wordLists.eigen||[]).forEach(function(e){if(e.active)keep.add(e.word);});
+  }
+  // Also keep words that are in activeWords (they might not be in wordLists)
+  (adminData.activeWords||[]).forEach(function(e){keep.add(e.word);});
+  // wordQueue words: keep only if in keep set OR if active in lists
+  // Actually remove ALL from wordQueue that aren't in any wordList as active
+  const keptQueue=(adminData.wordQueue||[]).filter(function(w){
+    // keep if it's in wordLists as active
+    if(!adminData.wordLists)return false;
+    let found=false;
+    [2,3,4].forEach(function(kl){const ld=adminData.wordLists['kl'+kl]||{};if(ld[w]&&ld[w].active)found=true;});
+    if(adminData.wordLists.eigen&&adminData.wordLists.eigen.some(function(e){return e.word===w&&e.active;}))found=true;
+    return found;
+  });
+  adminData.wordQueue=keptQueue;
+  // For activeWords: remove words not in any wordList
+  adminData.activeWords=(adminData.activeWords||[]).filter(function(e){
+    if(!adminData.wordLists)return false;
+    let found=false;
+    [2,3,4].forEach(function(kl){const ld=adminData.wordLists['kl'+kl]||{};if(ld[e.word]&&ld[e.word].active)found=true;});
+    if(adminData.wordLists.eigen&&adminData.wordLists.eigen.some(function(x){return x.word===e.word&&x.active;}))found=true;
+    return found;
+  });
+  await dbSet('k_'+adminId,adminData);
+  renderActiveSummary();
+  renderAdminWords();
+  alert('Fertig! Lernwörter wurden bereinigt.');
 }
 
 async function saveWordSelection(){
