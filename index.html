@@ -887,7 +887,19 @@ function startVorgluehung(){
   const lv=curData.snakeLevel||1;
   const isB=lv>=3;const count=isB?2:(Math.random()<.5?2:3);
   const data=SNAKE_WORDS[lv]||SNAKE_WORDS[1];
-  vgWords=[...data.words].sort(()=>Math.random()-.5).slice(0,count);
+  const allWords=data.words;
+  // Bereits gezeigte Wörter merken, damit keine Wiederholungen bis alle durch sind
+  let seen=(curData.vgSeen&&curData.vgSeen[lv])||[];
+  // Kandidaten: Wörter die noch nicht gezeigt wurden
+  let candidates=allWords.filter(w=>!seen.includes(w));
+  // Wenn alle durch: zurücksetzen
+  if(candidates.length<count){seen=[];candidates=[...allWords];}
+  vgWords=[...candidates].sort(()=>Math.random()-.5).slice(0,count);
+  // Gezeigte Wörter speichern
+  seen=[...seen,...vgWords];
+  if(!curData.vgSeen)curData.vgSeen={};
+  curData.vgSeen[lv]=seen;
+  dbSet('k_'+curKind.id,curData); // fire-and-forget
   vgIdx=0;showVgStep(1);
 }
 
@@ -1682,6 +1694,15 @@ async function setAktuellerSatz(){
   }
   aktuellerSatz={id:'akt_'+Date.now(),woche:getKW(),niveau,text,wortStrategien};
   await dbSet('aktuellerSatz',aktuellerSatz);
+  // satzWoerter für alle Kinder zurücksetzen, damit beim nächsten Öffnen alle Wörter grün sind
+  for(const k of kinder){
+    const kd=await dbGet('k_'+k.id);
+    if(kd&&kd.satzWoerter!==undefined){
+      delete kd.satzWoerter;
+      await dbSet('k_'+k.id,kd);
+    }
+  }
+  if(adminData&&adminData.satzWoerter!==undefined){delete adminData.satzWoerter;}
   renderAktiverSatz();renderSaetze();
   alert('✓ Wochensatz gesetzt! Alter Satz ins Archiv verschoben.');
 }
