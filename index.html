@@ -381,9 +381,6 @@ textarea{resize:vertical;min-height:70px}
     <h3 style="margin-bottom:12px">Einstellungen</h3>
 
 
-    <span class="section-label">WOCHENSATZ – WÖRTER FÜR DIESES KIND</span>
-    <p class="muted" style="margin-bottom:8px;font-size:12px">Tippe an, welche Wörter dieses Kind diese Woche schreiben muss:</p>
-    <div id="kindSatzChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;padding:10px;background:var(--bg);border-radius:10px;min-height:44px"></div>
     <span class="section-label">MERKWÖRTER STARTKLASSE</span>
     <select id="kindStartKlasse" style="margin-bottom:12px">
       <option value="2">Klasse 2 (Grundwortschatz)</option>
@@ -980,14 +977,8 @@ function startWochensatz(){
   // Wörter bereinigt für Vergleich, Originalform für Anzeige
   const tokenObjs=alleTokens.map(w=>({display:w, clean:w.replace(/[.,!?;:]/g,'')}));
 
-  // Nutze individuelle Wörter aus Admin (von Lehrperson festgelegt)
-  let luecken;
-  if(curData.satzWoerter&&curData.satzWoerter.length>0){
-    luecken=new Set(curData.satzWoerter);
-  }else{
-    // Fallback: alle Wörter des Satzes
-    luecken=new Set(tokenObjs.map(t=>t.clean));
-  }
+  // Immer alle Wörter des Satzes schreiben
+  const luecken=new Set(tokenObjs.map(t=>t.clean));
   wsLueckenWords=Array.from(luecken);wsCorrectWords=new Set();
 
   // Lückentext anzeigen
@@ -1313,7 +1304,6 @@ async function openKindAdmin(id){
     });
   }
   renderAdminWords();
-  renderSatzChipsAdmin();
   setTimeout(renderActiveSummary,100);
   showScreen('s-admin-kind');
 }
@@ -1322,7 +1312,6 @@ async function saveSettings(){
   adminData.snakeLevel=parseInt(document.getElementById('kindSnakeLevel').value);
   adminData.startKlasse=parseInt(document.getElementById('kindStartKlasse').value);
   adminData.niveau=document.getElementById('kindNiveau').value;
-  // satzWoerter wird live durch Chips aktualisiert
   await dbSet('k_'+adminId,adminData);alert('✓ Gespeichert!');
 }
 
@@ -1609,43 +1598,6 @@ async function removeWord(w){
   await dbSet('k_'+adminId,adminData);renderAdminWords();
 }
 
-// =================== SATZWÖRTER PRO KIND ===================
-function renderSatzChipsAdmin(){
-  const el=document.getElementById('kindSatzChips');
-  if(!el)return;
-  el.innerHTML='';
-  // Aktuellen Satz nutzen (Priorität) oder aus Archiv
-  const satz=aktuellerSatz||(allSaetze.length?allSaetze[allSaetze.length-1]:null);
-  if(!satz){el.innerHTML='<p class="muted">Kein Wochensatz gesetzt</p>';return;}
-  // ALLE Wörter des Satzes – Satzzeichen entfernen
-  const alleWorter=satz.text.replace(/\*/g,'').split(/\s+/).filter(Boolean).map(w=>w.replace(/[.,!?;:]/g,'')).filter(Boolean);
-  // Standard: ALLE Wörter ausgewählt - du klickst weg was das Kind NICHT schreiben muss
-  // Prüfen ob gespeicherte Auswahl noch zum aktuellen Satz passt
-  const stored=adminData.satzWoerter;
-  const alleSet=new Set(alleWorter);
-  const storedValid=stored!==undefined&&stored.length>0&&stored.every(function(w){return alleSet.has(w);});
-  const selected=new Set(storedValid?stored:alleWorter);
-  el.innerHTML='<p class="muted" style="width:100%;font-size:12px;margin-bottom:6px">Grün = Kind schreibt dieses Wort. Antippen zum Abwählen.</p>';
-  alleWorter.forEach(w=>{
-    if(!w)return;
-    const chip=document.createElement('span');
-    const updateChip=()=>{
-      const on=selected.has(w);
-      chip.style.cssText='padding:7px 14px;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-block;margin:0;background:'+(on?'var(--lgreen)':'var(--bg)')+';color:'+(on?'var(--green)':'var(--muted)')+';border:1.5px solid '+(on?'var(--green)':'var(--border)');
-    };
-    chip.textContent=w;
-    updateChip();
-    chip.onclick=()=>{
-      if(selected.has(w))selected.delete(w);
-      else selected.add(w);
-      adminData.satzWoerter=Array.from(selected);
-      updateChip();
-    };
-    el.appendChild(chip);
-  });
-  adminData.satzWoerter=Array.from(selected);
-}
-
 // =================== WOCHENSÄTZE ADMIN ===================
 async function showSaetzeAdmin(){
   allSaetze=await dbGet('saetze')||DEFAULT_SAETZE;
@@ -1694,15 +1646,6 @@ async function setAktuellerSatz(){
   }
   aktuellerSatz={id:'akt_'+Date.now(),woche:getKW(),niveau,text,wortStrategien};
   await dbSet('aktuellerSatz',aktuellerSatz);
-  // satzWoerter für alle Kinder zurücksetzen, damit beim nächsten Öffnen alle Wörter grün sind
-  for(const k of kinder){
-    const kd=await dbGet('k_'+k.id);
-    if(kd&&kd.satzWoerter!==undefined){
-      delete kd.satzWoerter;
-      await dbSet('k_'+k.id,kd);
-    }
-  }
-  if(adminData&&adminData.satzWoerter!==undefined){delete adminData.satzWoerter;}
   renderAktiverSatz();renderSaetze();
   alert('✓ Wochensatz gesetzt! Alter Satz ins Archiv verschoben.');
 }
