@@ -823,9 +823,10 @@ function renderHome(){
   });
   document.getElementById('homeDayLabel').textContent=['','Mo','Di','Mi','Do','Fr','Sa','So'][day]||'';
 
-  // Buttons dynamisch: Wochensatz oben wenn Montag oder noch nicht gemacht diese Woche
+  // Buttons dynamisch: Wochensatz-Banner wenn Montag, noch nicht gemacht, oder neuer Satz importiert
   const satzDieseWoche=hist[wk+'_d1']||hist[wk+'_d2']||hist[wk+'_d3']||hist[wk+'_d4']||hist[wk+'_d5'];
-  const wochensatzZuerst=(day===1)||!satzDieseWoche;
+  const neuerSatzVerfuegbar=aktuellerSatz&&(curData.letzterSatzId!==aktuellerSatz.id);
+  const wochensatzZuerst=(day===1)||!satzDieseWoche||neuerSatzVerfuegbar;
   const btnDiv=document.getElementById('homeButtons');
   if(wochensatzZuerst){
     btnDiv.innerHTML=`
@@ -1064,6 +1065,7 @@ async function wsSave(){
   if(!curData.wochensatzHistory)curData.wochensatzHistory={};
   if(!curData.strategieStats)curData.strategieStats={};
   curData.wochensatzHistory[wk+'_d'+day]=true;
+  if(wsCurrentSatz)curData.letzterSatzId=wsCurrentSatz.id; // merken welcher Satz zuletzt geübt wurde
   // Strategie-Statistik aktualisieren
   const satz=wsCurrentSatz;
   if(satz&&satz.wortStrategien){
@@ -1760,7 +1762,8 @@ async function deleteSatz(id){
 async function exportData(){
   const payload={
     version:2,exportDatum:new Date().toISOString(),
-    aktuellerSatz,saetze:allSaetze,merkwoerter:MERKWOERTER
+    aktuellerSatz,saetze:allSaetze,merkwoerter:MERKWOERTER,
+    kinder:kinder.map(k=>({id:k.id,name:k.name})) // Namen mitexportieren (kein Lernfortschritt)
   };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
@@ -1781,9 +1784,20 @@ async function importData(event){
     [2,3,4].forEach(kl=>{if(payload.merkwoerter[kl])Object.assign(MERKWOERTER[kl],payload.merkwoerter[kl]);});
     await dbSet('merkwoerter_custom',MERKWOERTER);
   }
-  alert('✓ Wochensatz importiert! Lernwortfortschritt bleibt erhalten.');
+  // Kinder-Namen importieren: neue hinzufügen, bestehende (mit Fortschritt) behalten
+  if(payload.kinder&&payload.kinder.length){
+    let changed=false;
+    for(const k of payload.kinder){
+      if(!kinder.some(x=>x.id===k.id)){
+        kinder.push({id:k.id,name:k.name});
+        changed=true;
+      }
+    }
+    if(changed){await dbSet('kinder',kinder);renderLoginSelect();}
+  }
+  alert('✓ Importiert! Wochensatz und Namen aktualisiert.');
   event.target.value='';
-  // Banner auf Startseite aktualisieren (falls von dort importiert)
+  // Startseite aktualisieren (neuer Wochensatz soll sofort sichtbar sein)
   if(document.getElementById('s-home').classList.contains('active'))renderHome();
 }
 
