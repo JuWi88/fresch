@@ -1040,12 +1040,21 @@ function wsShowCheck(){
   const alleTokens2=cleanText2.split(/\s+/).filter(Boolean);
   const tokenObjs2=alleTokens2.map(w=>({display:w,clean:w.replace(/[.,!?;:]/g,'')}));
   wsCorrectWords=new Set();
-  tokenObjs2.forEach(t=>{
+  // Letztes Satzzeichen vom letzten Wort merken (für separaten Punkt-Chip)
+  let satzzeichen='';
+  if(tokenObjs2.length){
+    const last=tokenObjs2[tokenObjs2.length-1];
+    const m=last.display.match(/([.,!?;:]+)$/);
+    if(m)satzzeichen=m[1];
+  }
+  tokenObjs2.forEach((t,i)=>{
     if(!t.clean)return;
+    const isLast=i===tokenObjs2.length-1;
     const chip=document.createElement('span');
     if(luecken.has(t.clean)){
       chip.className='satz-chip';
-      chip.textContent=t.display;
+      // Satzzeichen am Ende weglassen – kommt als eigener Chip
+      chip.textContent=isLast&&satzzeichen?t.display.replace(/[.,!?;:]+$/,''):t.display;
       chip.onclick=()=>{
         chip.classList.toggle('correct');
         if(chip.classList.contains('correct'))wsCorrectWords.add(t.clean);
@@ -1053,10 +1062,23 @@ function wsShowCheck(){
       };
     }else{
       chip.className='satz-chip plain';
-      chip.textContent=t.display;
+      chip.textContent=isLast&&satzzeichen?t.display.replace(/[.,!?;:]+$/,''):t.display;
     }
     el.appendChild(chip);
   });
+  // Schlusspunkt als eigener anklickbarer Chip
+  if(satzzeichen){
+    const dot=document.createElement('span');
+    dot.className='satz-chip';
+    dot.textContent=satzzeichen;
+    dot.style.minWidth='36px';dot.style.textAlign='center';dot.style.fontWeight='700';
+    dot.onclick=()=>{
+      dot.classList.toggle('correct');
+      if(dot.classList.contains('correct'))wsCorrectWords.add('__satzzeichen__');
+      else wsCorrectWords.delete('__satzzeichen__');
+    };
+    el.appendChild(dot);
+  }
 }
 
 async function wsSave(){
